@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+          "name": "C#: Launch DotNetApiTemplate",
+          "type": "dotnet",
+          "request": "launch",
+          "project": "DotNetApiTemplate.csproj"
+        }
+    ]
+}
