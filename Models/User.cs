@@ -8,6 +8,15 @@ namespace DotNetApiTemplate.Models
 {
     public class UserAttribute : IdentityUser
     {
+        public string? GoogleId { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
+
+        public string? Picture { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 
     public class User : UserAttribute
