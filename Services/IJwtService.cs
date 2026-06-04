@@ -1,80 +1,47 @@
-using System.Text;
-using System.Security.Claims;
-using DotNetApiTemplate.Models;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using DotNetApiTemplate.Models;
+using DotNetApiTemplate.Settings;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 
 namespace DotNetApiTemplate.Services
 {
     public interface IJwtService
     {
         string GenerateToken(User user);
-        bool ValidateToken(string token);
     }
 
-    public class JwtService(IConfiguration configuration) : IJwtService
+    public class JwtService(IOptions<JwtSettings> jwtOptions) : IJwtService
     {
-        private readonly IConfiguration _configuration = configuration;
+        private readonly JwtSettings _jwtSettings = jwtOptions.Value;
 
+        /// <summary>
+        /// 根據使用者資訊生成 JWT token，有效期為 24 小時。
+        /// </summary>
         public string GenerateToken(User user)
         {
-            var jwtSettings = _configuration.GetSection("JwtSettings");
-            var secretKey = jwtSettings["SecretKey"];
-            var issuer = jwtSettings["Issuer"];
-            var audience = jwtSettings["Audience"];
-            var expiryInHours = int.Parse(jwtSettings["ExpiryInHours"] ?? "24");
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
+            var claims = new List<Claim>()
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, string.Empty),
-                new Claim("google_id", user.GoogleId)
+                new(JwtRegisteredClaimNames.Sub, user.Id),
+                new(ClaimTypes.NameIdentifier, user.Id),
+                new(ClaimTypes.Name, user.EmployeeName ?? string.Empty),
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(expiryInHours),
-                signingCredentials: credentials
-            );
+                expires: DateTime.UtcNow.AddHours(_jwtSettings.ExpiryInHours),
+                signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        public bool ValidateToken(string token)
-        { 
-            try
-            {
-                var jwtSettings = _configuration.GetSection("JwtSettings");
-                var secretKey = jwtSettings["SecretKey"];
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
-
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = key,
-                    ValidateIssuer = true,
-                    ValidIssuer = jwtSettings["Issuer"],
-                    ValidateAudience = true,
-                    ValidAudience = jwtSettings["Audience"],
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
-
-                tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
         }
     }
 }

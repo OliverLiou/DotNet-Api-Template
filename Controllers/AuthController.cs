@@ -7,84 +7,77 @@ using Microsoft.AspNetCore.Mvc;
 using DotNetApiTemplate.ViewModels;
 using DotNetApiTemplate.Services;
 using DotNetApiTemplate.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace DotNetApiTemplate.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IGoogleAuthService googleAuthService, IJwtService jwtService, IAuthService authService) : ControllerBase
+    public class AuthController(IJwtService jwtService, IAuthService authService, IRepositoryService<User, UserLog> userRepositoryService, IConfiguration configuration, ILogger<AuthController> logger) : ControllerBase
     {
-        private readonly IGoogleAuthService _googleAuthService = googleAuthService;
         private readonly IJwtService _jwtService = jwtService;
         private readonly IAuthService _authService = authService;
-
-        [HttpPost("google")]
-        public async Task<ActionResult<VAuthResponse>> GoogleLogin([FromBody] VGoogleLoginRequest request)
+        private readonly IRepositoryService<User, UserLog> _userRepositoryService = userRepositoryService;
+        private readonly string _system_userName = configuration["SystemName"] ?? "System";
+        private readonly ILogger<AuthController> _logger = logger;
+        
+        [HttpPost("hcmf")]
+        public async Task<ActionResult<VAuthResponse>> AdLogin([FromBody] VAdLoginRequest request)
         {
             try
             {
-                // 驗證 Google ID Token
-                var googleUser = await _googleAuthService.VerifyGoogleTokenAsync(request.IdToken);
-                if (googleUser == null)
+                var userName = request.UserName;
+                var password = request.Password;
+
+                // 透過 AD 驗證帳號密碼
+                var (isValid, errorMessage) = await _authService.AdAuthenticateAsync(userName, password);
+
+                if (!isValid)
                 {
-                    return BadRequest(new VAuthResponse
-                    {
-                        Success = false,
-                        Message = "Invalid Google token"
-                    });
+                    _logger.LogWarning("AD 登入驗證失敗: {UserName}, 原因: {Error}", userName, errorMessage);
+                    return BadRequest(new VAuthResponse { Success = false, Message = errorMessage ?? "驗證失敗" });
                 }
 
-                User user;
-                // 檢查使用者是否已存在
-                var existingUser = await _authService.CheckUserExistsAsync(googleUser.GoogleId);
-                if (existingUser != null)
-                {
-                    // 更新現有使用者資訊
-                    existingUser.UserName = googleUser.Name;
-                    existingUser.Email = googleUser.Email;
-                    existingUser.Picture = googleUser.Picture;
-                    existingUser.LastLoginAt = DateTime.UtcNow;
+                var (adUserInfo, fetchErrorMessage) = await _authService.FetchAdUserPrincipal(userName);
 
-                    user = await _authService.UpdateUserAsync(existingUser);
-                }
-                else
+                if (adUserInfo == null)
                 {
-                    // 建立新使用者
-                    user = await _authService.CreateUserAsync(googleUser);
+                    _logger.LogWarning("AD 使用者資料查詢失敗: {UserName}, 原因: {Error}", userName, fetchErrorMessage);
+                    return BadRequest(new VAuthResponse { Success = false, Message = fetchErrorMessage ?? "驗證失敗" });
                 }
+
+                // 查詢 DB 是否已有該使用者
+                var user = await _authService.GetUserByUserNameAsync(userName);
+
+                // 如果沒有，建立新使用者
+                user ??= new User
+                {
+                    UserName = userName,
+                    EmployeeName = (adUserInfo.Surname ?? null) + (adUserInfo.GivenName ?? null),
+                    Email = adUserInfo.EmailAddress ?? null,
+                    NormalizedUserName = userName.ToUpper(),
+                    NormalizedEmail = adUserInfo.EmailAddress?.ToUpper() ?? null,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+                user.LastLoginAt = DateTime.UtcNow;
+                await _userRepositoryService.SaveSingleDataAsync(user, _system_userName);
 
                 // 生成 JWT token
                 var token = _jwtService.GenerateToken(user);
 
-                return Ok(new VAuthResponse
-                {
-                    Success = true,
-                    Message = "Login successful",
-                    Token = token,
-                    VUserInfo = new VUserInfo
-                    {
-                        Id = user.Id,
-                        UserName = user.UserName,
-                        Email = user.Email,
-                        Picture = user.Picture
-                    }
-                });
+                return Ok(new VAuthResponse { Success = true, Token = token });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "AdLogin 發生未預期的錯誤");
                 return StatusCode(500, new VAuthResponse
                 {
                     Success = false,
-                    Message = "Internal server error"
+                    Message = "伺服器發生內部錯誤，請稍後再試"
                 });
             }
         }
 
-        [HttpPost("verify")]
-        public IActionResult VerifyToken([FromBody] string token)
-        {
-            var isValid = _jwtService.ValidateToken(token);
-            return Ok(new { isValid });
-        }
     }
 }

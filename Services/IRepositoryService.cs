@@ -80,6 +80,8 @@ namespace DotNetApiTemplate.Services
         {
             try
             {
+                var _transaction = await _context.Database.BeginTransactionAsync();
+
                 var id = GetPrimaryKeyValues(entity);
                 var oldEntity = await GetDataWithIdAsync(id!);
                 var methodName = _create;
@@ -100,6 +102,8 @@ namespace DotNetApiTemplate.Services
                 await ContextCreateLog(entity, log);
 
                 await _context.SaveChangesAsync();
+
+                await _transaction.CommitAsync();
             }
             catch (Exception)
             {
@@ -111,6 +115,7 @@ namespace DotNetApiTemplate.Services
         {
             try
             {
+                var _transaction = await _context.Database.BeginTransactionAsync();
                 var log = new Log() { EditorName = editorName, Method = "", ExcuteTime = DateTime.Now };
 
                 foreach (var entity in entitys)
@@ -135,6 +140,8 @@ namespace DotNetApiTemplate.Services
                 }
 
                 await _context.SaveChangesAsync();
+
+                await _transaction.CommitAsync();
             }
             catch (Exception)
             {
@@ -146,6 +153,7 @@ namespace DotNetApiTemplate.Services
         {
             try
             {
+                var _transaction = await _context.Database.BeginTransactionAsync();
                 var entity = await GetDataWithIdAsync(id);
 
                 if (entity == null)
@@ -158,6 +166,7 @@ namespace DotNetApiTemplate.Services
                 await ContextCreateLog(entity, log);
 
                 await _context.SaveChangesAsync();
+                await _transaction.CommitAsync();
             }
             catch (Exception)
             {
@@ -178,9 +187,7 @@ namespace DotNetApiTemplate.Services
             }
         }
 
-        public async Task<Tuple<List<T>, int>> FindDataAsync(int currentPage, int pageSize, string? querySearch,
-                                                            Expression<Func<T, bool>>? predicate,
-                                                            List<(string, bool)>? sortColumns)
+        public async Task<Tuple<List<T>, int>> FindDataAsync(int currentPage, int pageSize, string? querySearch, Expression<Func<T, bool>>? predicate, List<(string, bool)>? sortColumns)
         {
             try
             {

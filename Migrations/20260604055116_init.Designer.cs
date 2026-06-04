@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DotNetApiTemplate.Migrations
 {
     [DbContext(typeof(TemplateContext))]
-    [Migration("20250821063306_init")]
+    [Migration("20260604055116_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace DotNetApiTemplate.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.10")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -125,7 +125,7 @@ namespace DotNetApiTemplate.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("GoogleId")
+                    b.Property<string>("EmployeeName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
@@ -156,9 +156,6 @@ namespace DotNetApiTemplate.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Picture")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -213,9 +210,6 @@ namespace DotNetApiTemplate.Migrations
                     b.Property<DateTime>("ExcuteTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("GoogleId")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(max)");
 
@@ -249,9 +243,6 @@ namespace DotNetApiTemplate.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Picture")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
