@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using  DotNetApiTemplate.Models;
-using  DotNetApiTemplate.Services;
+using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.EntityLogs;
+using DotNetApiTemplate.Services;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DotNetApiTemplate.Controllers

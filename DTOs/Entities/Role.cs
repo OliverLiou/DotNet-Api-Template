@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 
-namespace DotNetApiTemplate.Models
+namespace DotNetApiTemplate.DTOs.Entities
 {
-    public class Role :IdentityRole
+    public class Role : IdentityRole
     {
         /// <summary>
         /// 角色名稱

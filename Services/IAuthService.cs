@@ -3,11 +3,12 @@ using System.Security.Claims;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Runtime.InteropServices;
-using DotNetApiTemplate.Models;
+using DotNetApiTemplate.DTOs.Context;
+using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.ViewModels.User;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.EntityFrameworkCore;
-using DotNetApiTemplate.ViewModels;
 
 
 namespace DotNetApiTemplate.Services
@@ -15,7 +16,7 @@ namespace DotNetApiTemplate.Services
     public interface IAuthService
     {
         Task<(bool IsValid, string? ErrorMessage)> AdAuthenticateAsync(string username, string password);
-        Task<(VAdUserInfo? AdUserInfo, string? ErrorMessage)> FetchAdUserPrincipal(string username);
+        Task<(AdUserInfoDto? AdUserInfo, string? ErrorMessage)> FetchAdUserPrincipal(string username);
         Task<User?> GetUserByUserNameAsync(string userName);
     }
 
@@ -70,9 +71,9 @@ namespace DotNetApiTemplate.Services
 
         /// <summary>
         /// 透過 PrincipalContext 及 FindByIdentity 查詢 AD 使用者資料，
-        /// 回傳 VAdUserInfo DTO（已在 context 存活期間擷取資料）。
+        /// 回傳 AdUserInfoDto（已在 context 存活期間擷取資料）。
         /// </summary>
-        public Task<(VAdUserInfo? AdUserInfo, string? ErrorMessage)> FetchAdUserPrincipal(string username)
+        public Task<(AdUserInfoDto? AdUserInfo, string? ErrorMessage)> FetchAdUserPrincipal(string username)
         {
             try
             {
@@ -83,10 +84,10 @@ namespace DotNetApiTemplate.Services
                 using var userPrincipal = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, username);
 
                 if (userPrincipal == null)
-                    return Task.FromResult<(VAdUserInfo?, string?)>((null, $"找不到使用者 {username}"));
+                    return Task.FromResult<(AdUserInfoDto?, string?)>((null, $"找不到使用者 {username}"));
 
                 // 在 PrincipalContext 存活期間擷取所需資料至 DTO
-                var adUserInfo = new VAdUserInfo
+                var adUserInfo = new AdUserInfoDto
                 {
                     Surname = userPrincipal.Surname,
                     GivenName = userPrincipal.GivenName,
@@ -94,15 +95,15 @@ namespace DotNetApiTemplate.Services
                     DisplayName = userPrincipal.DisplayName
                 };
 
-                return Task.FromResult<(VAdUserInfo?, string?)>((adUserInfo, null));
+                return Task.FromResult<(AdUserInfoDto?, string?)>((adUserInfo, null));
             }
             catch (PrincipalServerDownException)
             {
-                return Task.FromResult<(VAdUserInfo?, string?)>((null, "AD 伺服器無法連線，請稍後再試"));
+                return Task.FromResult<(AdUserInfoDto?, string?)>((null, "AD 伺服器無法連線，請稍後再試"));
             }
             catch (Exception ex)
             {
-                return Task.FromResult<(VAdUserInfo?, string?)>((null, $"查詢 AD 使用者資料發生錯誤: {ex.Message}"));
+                return Task.FromResult<(AdUserInfoDto?, string?)>((null, $"查詢 AD 使用者資料發生錯誤: {ex.Message}"));
             }
         }
 

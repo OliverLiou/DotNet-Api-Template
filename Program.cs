@@ -1,9 +1,11 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using DotNetApiTemplate.Models;
+using DotNetApiTemplate.DTOs.Context;
+using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.EntityLogs;
+using DotNetApiTemplate.DTOs.Settings;
 using DotNetApiTemplate.Services;
-using DotNetApiTemplate.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -21,58 +23,40 @@ var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<
     ?? throw new InvalidOperationException("JwtSettings configuration is required.");
 
 if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey))
-{
     throw new InvalidOperationException("JwtSettings:SecretKey is required.");
-}
+
 
 if (string.IsNullOrWhiteSpace(jwtSettings.Issuer))
-{
     throw new InvalidOperationException("JwtSettings:Issuer is required.");
-}
+
 
 if (string.IsNullOrWhiteSpace(jwtSettings.Audience))
-{
     throw new InvalidOperationException("JwtSettings:Audience is required.");
-}
 
-builder.Services.AddIdentity<User, Role>()
-    .AddEntityFrameworkStores<TemplateContext>();
+builder.Services.AddIdentity<User, Role>().AddEntityFrameworkStores<TemplateContext>();
 
 builder.Services.AddDbContext<TemplateContext>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
-{
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    options.IncludeXmlComments(xmlPath);
-    options.EnableAnnotations();
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "DotNetApiTemplate", Version = "v1" });
-
-    // var securityScheme = new OpenApiSecurityScheme
-    // {
-    //     Name = "JWT Authentication",
-    //     Description = "Enter JWT Bearer token **_only_**",
-    //     In = ParameterLocation.Header,
-    //     Type = SecuritySchemeType.Http,
-    //     Scheme = "bearer",
-    //     BearerFormat = "JWT"
-    // };
-
-    // options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, securityScheme);
-    options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
     {
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Description = "JWT Authorization header using the Bearer scheme."
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        options.IncludeXmlComments(xmlPath);
+        options.EnableAnnotations();
+        options.SwaggerDoc("v1", new OpenApiInfo { Title = "DotNetApiTemplate", Version = "v1" });
+        options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "JWT Authorization header using the Bearer scheme."
+        });
+        options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("bearer", document)] = []
+        });
     });
-    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("bearer", document)] = []
-    });
-
-});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -128,16 +112,16 @@ builder.Services.AddAuthorization();
 
 const string corsPolicyName = "AllowFrontend";
 builder.Services.AddCors(options =>
-{
-    options.AddPolicy(corsPolicyName, policy =>
     {
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-        policy.WithOrigins(allowedOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        options.AddPolicy(corsPolicyName, policy =>
+        {
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
     });
-});
 
 builder.Services.AddAutoMapper(_ => { }, typeof(Program).Assembly);
 
@@ -153,5 +137,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-

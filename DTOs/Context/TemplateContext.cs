@@ -1,9 +1,11 @@
-namespace DotNetApiTemplate.Models;
+namespace DotNetApiTemplate.DTOs.Context;
+
+using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.EntityLogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
-// public class TemplateContext(DbContextOptions<TemplateContext> options) : DbContext(options)
 public class TemplateContext(DbContextOptions<TemplateContext> options) : IdentityDbContext<User, Role, string>(options)
 {
     //Tables

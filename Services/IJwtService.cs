@@ -1,8 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using DotNetApiTemplate.Models;
-using DotNetApiTemplate.Settings;
+using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.Settings;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 
@@ -18,7 +18,7 @@ namespace DotNetApiTemplate.Services
         private readonly JwtSettings _jwtSettings = jwtOptions.Value;
 
         /// <summary>
-        /// 根據使用者資訊生成 JWT token，有效期為 24 小時。
+        /// 根據使用者資訊生成 JWT token
         /// </summary>
         public string GenerateToken(User user)
         {

@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.Settings;
+namespace DotNetApiTemplate.DTOs.Settings;
 
 public sealed class JwtSettings
 {

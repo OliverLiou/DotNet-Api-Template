@@ -4,9 +4,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using DotNetApiTemplate.ViewModels;
+using DotNetApiTemplate.DTOs.ViewModels.Auth;
+using DotNetApiTemplate.DTOs.ViewModels.User;
+using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.EntityLogs;
 using DotNetApiTemplate.Services;
-using DotNetApiTemplate.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace DotNetApiTemplate.Controllers
@@ -22,7 +24,7 @@ namespace DotNetApiTemplate.Controllers
         private readonly ILogger<AuthController> _logger = logger;
         
         [HttpPost("hcmf")]
-        public async Task<ActionResult<VAuthResponse>> AdLogin([FromBody] VAdLoginRequest request)
+        public async Task<ActionResult<AuthResponse>> AdLogin([FromBody] AdLoginRequest request)
         {
             try
             {
@@ -35,7 +37,7 @@ namespace DotNetApiTemplate.Controllers
                 if (!isValid)
                 {
                     _logger.LogWarning("AD 登入驗證失敗: {UserName}, 原因: {Error}", userName, errorMessage);
-                    return BadRequest(new VAuthResponse { Success = false, Message = errorMessage ?? "驗證失敗" });
+                    return BadRequest(new AuthResponse { Success = false, Message = errorMessage ?? "驗證失敗" });
                 }
 
                 var (adUserInfo, fetchErrorMessage) = await _authService.FetchAdUserPrincipal(userName);
@@ -43,7 +45,7 @@ namespace DotNetApiTemplate.Controllers
                 if (adUserInfo == null)
                 {
                     _logger.LogWarning("AD 使用者資料查詢失敗: {UserName}, 原因: {Error}", userName, fetchErrorMessage);
-                    return BadRequest(new VAuthResponse { Success = false, Message = fetchErrorMessage ?? "驗證失敗" });
+                    return BadRequest(new AuthResponse { Success = false, Message = fetchErrorMessage ?? "驗證失敗" });
                 }
 
                 // 查詢 DB 是否已有該使用者
@@ -64,14 +66,14 @@ namespace DotNetApiTemplate.Controllers
                 await _userRepositoryService.SaveSingleDataAsync(user, _system_userName);
 
                 // 生成 JWT token
-                var token = _jwtService.GenerateToken(user);
+                var accessToken = _jwtService.GenerateToken(user);
 
-                return Ok(new VAuthResponse { Success = true, Token = token });
+                return Ok(new AuthResponse { Success = true, AccessToken = accessToken });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "AdLogin 發生未預期的錯誤");
-                return StatusCode(500, new VAuthResponse
+                return StatusCode(500, new AuthResponse
                 {
                     Success = false,
                     Message = "伺服器發生內部錯誤，請稍後再試"

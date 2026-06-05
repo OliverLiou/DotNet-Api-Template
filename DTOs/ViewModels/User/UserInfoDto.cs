@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 
-namespace DotNetApiTemplate.ViewModels
+namespace DotNetApiTemplate.DTOs.ViewModels.User
 {
-    public class VUserInfo
+    public class UserInfoDto
     {
         public string? Id { get; set; }
         public required string UserName { get; set; }

@@ -1,6 +1,6 @@
 using AutoMapper;
-using  DotNetApiTemplate.Models;
-// using  DotNetApiTemplate.ViewModels;
+using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.EntityLogs;
 
 namespace DotNetApiTemplate
 {

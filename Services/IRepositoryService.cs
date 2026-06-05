@@ -6,9 +6,9 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using  DotNetApiTemplate;
-using  DotNetApiTemplate.Interface;
-using  DotNetApiTemplate.Models;
+using DotNetApiTemplate.DTOs.Context;
+using DotNetApiTemplate.DTOs.Interfaces;
+using DotNetApiTemplate.DTOs.EntityLogs;
 
 namespace DotNetApiTemplate.Services
 {

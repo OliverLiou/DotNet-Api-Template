@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace DotNetApiTemplate.ViewModels
+namespace DotNetApiTemplate.DTOs.ViewModels.Auth
 {
-    public class VAdLoginRequest
+    public class AdLoginRequest
     {
         [Required(ErrorMessage = "帳號為必填欄位")]
         public string UserName { get; set; } = string.Empty;
