@@ -10,5 +10,7 @@ public sealed class JwtSettings
 
     public string Audience { get; set; } = string.Empty;
 
-    public int ExpiryInHours { get; set; } = 24;
+    public int ExpiryInHours { get; set; } = 2;
+
+    public int RefreshTokenExpiryInHours { get; set; } = 24;
 }

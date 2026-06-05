@@ -102,7 +102,7 @@ builder.Services.AddAuthentication(options =>
             ValidateLifetime = true,
 
             // 如果 Token 中包含 key 才需要驗證，一般都只有簽章而已
-            ValidateIssuerSigningKey = false,
+            ValidateIssuerSigningKey = true,
 
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
         };

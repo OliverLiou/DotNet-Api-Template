@@ -9,6 +9,7 @@ using DotNetApiTemplate.DTOs.ViewModels.User;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 
 namespace DotNetApiTemplate.Services
@@ -18,12 +19,15 @@ namespace DotNetApiTemplate.Services
         Task<(bool IsValid, string? ErrorMessage)> AdAuthenticateAsync(string username, string password);
         Task<(AdUserInfoDto? AdUserInfo, string? ErrorMessage)> FetchAdUserPrincipal(string username);
         Task<User?> GetUserByUserNameAsync(string userName);
+        Task<User?> GetUserByIdAsync(string userId);
+        Task<IList<string>> GetUserRoleNamesAsync(User user);
     }
 
-    public class AuthService(TemplateContext context, IConfiguration configuration) : IAuthService
+    public class AuthService(TemplateContext context, IConfiguration configuration, UserManager<User> userManager) : IAuthService
     {
         private readonly TemplateContext _context = context;
         private readonly IConfiguration _configuration = configuration;
+        private readonly UserManager<User> _userManager = userManager;
 
         /// <summary>
         /// 透過 DirectoryEntry (LDAP Bind) 驗證使用者帳號密碼，
@@ -112,6 +116,30 @@ namespace DotNetApiTemplate.Services
             try
             {
                 return await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<User?> GetUserByIdAsync(string userId)
+        {
+            try
+            {
+                return await _userManager.FindByIdAsync(userId);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<IList<string>> GetUserRoleNamesAsync(User user)
+        {
+            try
+            {
+                return await _userManager.GetRolesAsync(user);
             }
             catch (Exception)
             {
