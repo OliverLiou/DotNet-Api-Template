@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using DotNetApiTemplate.DTOs.Context;
 using DotNetApiTemplate.DTOs.Entities;
 using DotNetApiTemplate.DTOs.EntityLogs;
+using DotNetApiTemplate.DTOs.Interfaces;
 using DotNetApiTemplate.DTOs.Settings;
 using DotNetApiTemplate.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -66,8 +67,6 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddScoped(typeof(IRepositoryService<,>), typeof(RepositoryService<,>));
-builder.Services.AddScoped<IRepositoryService<User, UserLog>, RepositoryService<User, UserLog>>();
-builder.Services.AddScoped<IRepositoryService<Table1, Table1Log>, RepositoryService<Table1, Table1Log>>();
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

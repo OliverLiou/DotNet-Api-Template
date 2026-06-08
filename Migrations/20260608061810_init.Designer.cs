@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DotNetApiTemplate.Migrations
 {
     [DbContext(typeof(TemplateContext))]
-    [Migration("20260605012927_init")]
+    [Migration("20260608061810_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -165,7 +165,7 @@ namespace DotNetApiTemplate.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("ExcuteTime")
+                    b.Property<DateTime>("ExecuteTime")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Method")
@@ -207,7 +207,7 @@ namespace DotNetApiTemplate.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime>("ExcuteTime")
+                    b.Property<DateTime>("ExecuteTime")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Id")

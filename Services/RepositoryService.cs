@@ -13,46 +13,6 @@ using DotNetApiTemplate.DTOs.EntityLogs;
 namespace DotNetApiTemplate.Services
 {
     /// <summary>
-    /// 泛型 Repository 介面，約束提升到介面級別
-    /// </summary>
-    /// <typeparam name="T">實體類型</typeparam>
-    /// <typeparam name="TLog">日誌實體類型</typeparam>
-    public interface IRepositoryService<T, TLog> where T : class where TLog : class
-    {
-        /// <summary>
-        /// 取得單筆資料
-        /// </summary>
-        Task<T?> GetDataWithIdAsync(object[] id);
-
-        /// <summary>
-        /// 新增或更新單筆資料
-        /// </summary>
-        Task SaveSingleDataAsync(T entity, string editorName);
-
-        /// <summary>
-        /// 新增或更新多筆資料
-        /// </summary>
-        Task SaveMutipleDataAsync(List<T> entitys, string editorName);
-
-        /// <summary>
-        /// 刪除單筆資料
-        /// </summary>
-        Task DeleteSigleDataAsync(object[] id, string editorName);
-
-        /// <summary>
-        /// 取得整個Table資料
-        /// </summary>
-        Task<List<T>> GetAllDataAsync();
-
-        /// <summary>
-        /// 找出範圍內的資料, 可下條件式、排序
-        /// </summary>
-        Task<Tuple<List<T>, int>> FindDataAsync(int currentPage, int pageSize, string? querySearch,
-                                                Expression<Func<T, bool>>? predicate,
-                                                List<(string, bool)> sortColumns);
-    }
-
-    /// <summary>
     /// 泛型 Repository 實作
     /// </summary>
     public class RepositoryService<T, TLog>(TemplateContext context, IConfiguration configuration, IMapper mapper) : IRepositoryService<T, TLog> where T : class where TLog : class
@@ -78,10 +38,9 @@ namespace DotNetApiTemplate.Services
 
         public async Task SaveSingleDataAsync(T entity, string editorName)
         {
+            var _transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var _transaction = await _context.Database.BeginTransactionAsync();
-
                 var id = GetPrimaryKeyValues(entity);
                 var oldEntity = await GetDataWithIdAsync(id!);
                 var methodName = _create;
@@ -97,7 +56,7 @@ namespace DotNetApiTemplate.Services
 
                 await _context.SaveChangesAsync();
 
-                var log = new Log() { Method = methodName, EditorName = editorName, ExcuteTime = DateTime.Now };
+                var log = new Log() { Method = methodName, EditorName = editorName, ExecuteTime = DateTime.UtcNow };
 
                 await ContextCreateLog(entity, log);
 
@@ -107,70 +66,80 @@ namespace DotNetApiTemplate.Services
             }
             catch (Exception)
             {
+                await _transaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                await _transaction.DisposeAsync();
             }
         }
 
-        public async Task SaveMutipleDataAsync(List<T> entitys, string editorName)
+        public async Task SaveMultipleDataAsync(List<T> entities, string editorName)
         {
+            var _transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var _transaction = await _context.Database.BeginTransactionAsync();
-                var log = new Log() { EditorName = editorName, Method = "", ExcuteTime = DateTime.Now };
+                var utcNow = DateTime.UtcNow;
 
-                foreach (var entity in entitys)
+                foreach (var entity in entities)
                 {
                     var id = GetPrimaryKeyValues(entity);
                     var oldEntity = await GetDataWithIdAsync(id!);
-                    if (oldEntity == null)
-                    {
-                        await _context.Set<T>().AddAsync(entity);
-                        log.Method = _create;
-                    }
-                    else
+                    var isUpdate = oldEntity != null;
+                    
+                    if (isUpdate)
                     {
                         _context.Entry(oldEntity).State = EntityState.Modified;
                         _context.Entry(oldEntity).CurrentValues.SetValues(entity);
-                        log.Method = _update;
                     }
-
-                    await _context.SaveChangesAsync();
+                    else
+                        await _context.Set<T>().AddAsync(entity);
+                    
+                    var log = new Log() { EditorName = editorName, Method = isUpdate ? _update : _create, ExecuteTime = utcNow };
 
                     await ContextCreateLog(entity, log);
+                    await _context.SaveChangesAsync();
                 }
-
-                await _context.SaveChangesAsync();
-
                 await _transaction.CommitAsync();
             }
             catch (Exception)
             {
+                await _transaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                await _transaction.DisposeAsync();
             }
         }
 
-        public async Task DeleteSigleDataAsync(object[] id, string editorName)
+        public async Task DeleteSingleDataAsync(object[] id, string editorName)
         {
+            var _transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var _transaction = await _context.Database.BeginTransactionAsync();
                 var entity = await GetDataWithIdAsync(id);
 
                 if (entity == null)
                     throw new Exception(string.Format("{0}中找不到Id為{1}的資料", typeof(T).Name, string.Join(",", id.Select(s => s))));
 
-                _context.Entry(entity).State = EntityState.Deleted;
-
-                var log = new Log() { EditorName = editorName, ExcuteTime = DateTime.Now, Method = _delete };
-
+                var log = new Log() { EditorName = editorName, ExecuteTime = DateTime.UtcNow, Method = _delete };
                 await ContextCreateLog(entity, log);
+
+                _context.Entry(entity).State = EntityState.Deleted;
 
                 await _context.SaveChangesAsync();
                 await _transaction.CommitAsync();
             }
             catch (Exception)
             {
+                await _transaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                await _transaction.DisposeAsync();
             }
         }
 
@@ -187,7 +156,7 @@ namespace DotNetApiTemplate.Services
             }
         }
 
-        public async Task<Tuple<List<T>, int>> FindDataAsync(int currentPage, int pageSize, string? querySearch, Expression<Func<T, bool>>? predicate, List<(string, bool)>? sortColumns)
+        public async Task<(List<T>, int)> FindDataAsync(int currentPage, int pageSize, string? querySearch, Expression<Func<T, bool>>? predicate, List<(string, bool)> sortColumns)
         {
             try
             {
@@ -201,25 +170,28 @@ namespace DotNetApiTemplate.Services
 
                 var total = await items.CountAsync();
 
-                if (sortColumns != null)
+                if (sortColumns.Count > 0)
                 {
+                    bool isFirst = true;
                     foreach (var sortColumn in sortColumns)
                     {
                         var (propertyName, isAscending) = sortColumn;
                         var parameter = Expression.Parameter(typeof(T), "x");
                         var property = Expression.Property(parameter, propertyName);
                         var lambda = Expression.Lambda(property, parameter);
-                        var methodName = isAscending ? "OrderBy" : "OrderByDescending";
+                        var methodName = isFirst ? (isAscending ? "OrderBy" : "OrderByDescending") :
+                                                    (isAscending ? "ThenBy" : "ThenByDescending");
 
                         var genericMethod = typeof(Queryable).GetMethods().First(m => m.Name == methodName && m.GetParameters().Length == 2)
                                                              .MakeGenericMethod(typeof(T), property.Type);
                         items = (IQueryable<T>)genericMethod.Invoke(null, [items, lambda])!;
+                        isFirst = false;
                     }
                 }
 
                 items = items.Skip((currentPage - 1) * pageSize).Take(pageSize);
 
-                return Tuple.Create(await items.ToListAsync(), total);
+                return (await items.ToListAsync(), total);
             }
             catch (Exception)
             {
@@ -246,14 +218,14 @@ namespace DotNetApiTemplate.Services
             try
             {
                 var entityLog = _mapper.Map<TLog>(source);
-                var entityLogPropertys = typeof(TLog).GetProperties();
+                var entityLogProperties = typeof(TLog).GetProperties();
 
-                var logPropertys = log.GetType().GetProperties();
+                var logProperties = log.GetType().GetProperties();
 
-                foreach (var logProperty in logPropertys)
+                foreach (var logProperty in logProperties)
                 {
                     var name = logProperty.Name;
-                    var entityLogProperty = entityLogPropertys.First(e => e.Name == name);
+                    var entityLogProperty = entityLogProperties.First(e => e.Name == name);
                     if (entityLogProperty != null && entityLogProperty.CanWrite)
                     {
                         entityLogProperty.SetValue(entityLog, logProperty.GetValue(log));

@@ -6,7 +6,7 @@ namespace DotNetApiTemplate.DTOs.EntityLogs
     {
         public required string Method { get; set; }
 
-        public required DateTime ExcuteTime { get; set; }
+        public required DateTime ExecuteTime { get; set; }
 
         public required string EditorName { get; set; }
     }

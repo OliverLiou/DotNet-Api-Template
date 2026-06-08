@@ -8,6 +8,7 @@ using DotNetApiTemplate.DTOs.ViewModels.Auth;
 using DotNetApiTemplate.DTOs.ViewModels.User;
 using DotNetApiTemplate.DTOs.Entities;
 using DotNetApiTemplate.DTOs.EntityLogs;
+using DotNetApiTemplate.DTOs.Interfaces;
 using DotNetApiTemplate.DTOs.Settings;
 using DotNetApiTemplate.Services;
 using Microsoft.Extensions.Options;

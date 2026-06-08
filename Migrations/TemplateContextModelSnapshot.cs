@@ -162,7 +162,7 @@ namespace DotNetApiTemplate.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("ExcuteTime")
+                    b.Property<DateTime>("ExecuteTime")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Method")
@@ -204,7 +204,7 @@ namespace DotNetApiTemplate.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime>("ExcuteTime")
+                    b.Property<DateTime>("ExecuteTime")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Id")

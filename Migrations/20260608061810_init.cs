@@ -75,7 +75,7 @@ namespace DotNetApiTemplate.Migrations
                     Table1LogId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Method = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ExcuteTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExecuteTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EditorName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Table1Id = table.Column<int>(type: "int", nullable: false),
                     Column1 = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -92,7 +92,7 @@ namespace DotNetApiTemplate.Migrations
                     UserLogId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Method = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ExcuteTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExecuteTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EditorName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Id = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(max)", nullable: true),

@@ -2,24 +2,13 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using DotNetApiTemplate.DTOs.Entities;
+using DotNetApiTemplate.DTOs.Interfaces;
 using DotNetApiTemplate.DTOs.Settings;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 
 namespace DotNetApiTemplate.Services
 {
-    public static class JwtTokenTypes
-    {
-        public const string Access = "access";
-        public const string Refresh = "refresh";
-    }
-
-    public interface IJwtService
-    {
-        string GenerateToken(User user, int? expiryHours = null, string tokenType = JwtTokenTypes.Access);
-        ClaimsPrincipal GetPrincipalFromToken(string token, bool validateLifetime = true);
-    }
-
     public class JwtService(IOptions<JwtSettings> jwtOptions) : IJwtService
     {
         private readonly JwtSettings _jwtSettings = jwtOptions.Value;

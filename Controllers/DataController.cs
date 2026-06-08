@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DotNetApiTemplate.DTOs.Entities;
 using DotNetApiTemplate.DTOs.EntityLogs;
-using DotNetApiTemplate.Services;
+using DotNetApiTemplate.DTOs.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DotNetApiTemplate.Controllers
@@ -55,7 +55,7 @@ namespace DotNetApiTemplate.Controllers
         {
             try
             {
-                await _repositoryService.SaveMutipleDataAsync(table1s, "");
+                await _repositoryService.SaveMultipleDataAsync(table1s, "");
                 return Ok();
             }
             catch (Exception ex)
@@ -71,7 +71,7 @@ namespace DotNetApiTemplate.Controllers
         {
             try
             {
-                await _repositoryService.DeleteSigleDataAsync([table1Id], "");
+                await _repositoryService.DeleteSingleDataAsync([table1Id], "");
 
                 return Ok();
             }

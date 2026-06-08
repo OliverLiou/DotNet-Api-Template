@@ -4,7 +4,7 @@ namespace DotNetApiTemplate.DTOs.Interfaces
     {
         string Method { get; set; }
 
-        DateTime ExcuteTime { get; set; }
+        DateTime ExecuteTime { get; set; }
 
         string EditorName { get; set; }
     }
