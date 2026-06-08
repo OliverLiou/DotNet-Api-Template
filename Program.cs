@@ -7,6 +7,7 @@ using DotNetApiTemplate.DTOs.EntityLogs;
 using DotNetApiTemplate.DTOs.Interfaces;
 using DotNetApiTemplate.DTOs.Settings;
 using DotNetApiTemplate.Services;
+using DotNetApiTemplate.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -70,6 +71,8 @@ builder.Services.AddScoped(typeof(IRepositoryService<,>), typeof(RepositoryServi
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddAuthentication(options =>
     {   
@@ -82,21 +85,13 @@ builder.Services.AddAuthentication(options =>
         options.IncludeErrorDetails = true; // 預設值為 true，有時會特別關閉
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            // // 透過這項宣告，就可以從 "sub" 取值並設定給 User.Identity.Name
-            // NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
-            // // 透過這項宣告，就可以從 "roles" 取值，並可讓 [Authorize] 判斷角色
-            // RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
-
             // 一般我們都會驗證 Issuer
             ValidateIssuer = true,
             ValidIssuer = jwtSettings.Issuer,
 
             // 一般我們都會驗證 Audience
-
-            // 通常不太需要驗證 Audience
-            ValidateAudience = false,
-            //ValidAudience = "JwtAuthDemo", // 不驗證就不需要填寫
-
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
             // 一般我們都會驗證 Token 的有效期間
             ValidateLifetime = true,
 
@@ -129,6 +124,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors(corsPolicyName);
 app.UseAuthentication();

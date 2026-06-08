@@ -23,29 +23,18 @@ namespace DotNetApiTemplate.Services
         private readonly string _update = configuration.GetSection("MethodName")["Update"]!;
         private readonly string _delete = configuration.GetSection("MethodName")["Delete"]!;
 
-        public async Task<T?> GetDataWithIdAsync(object[] id)
-        {
-            try
-            {
-                var result = await _context.Set<T>().FindAsync(id);
-                return result;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
+        public async Task<T?> GetDataWithIdAsync(object[] id) => await _context.Set<T>().FindAsync(id);
 
         public async Task SaveSingleDataAsync(T entity, string editorName)
         {
-            var _transaction = await _context.Database.BeginTransactionAsync();
+            await using var _transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var id = GetPrimaryKeyValues(entity);
                 var oldEntity = await GetDataWithIdAsync(id!);
                 var methodName = _create;
 
-                if (oldEntity == null)
+                if (oldEntity == null)  
                     await _context.Set<T>().AddAsync(entity);
                 else
                 {
@@ -69,15 +58,11 @@ namespace DotNetApiTemplate.Services
                 await _transaction.RollbackAsync();
                 throw;
             }
-            finally
-            {
-                await _transaction.DisposeAsync();
-            }
         }
 
         public async Task SaveMultipleDataAsync(List<T> entities, string editorName)
         {
-            var _transaction = await _context.Database.BeginTransactionAsync();
+            await using var _transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var utcNow = DateTime.UtcNow;
@@ -108,15 +93,11 @@ namespace DotNetApiTemplate.Services
                 await _transaction.RollbackAsync();
                 throw;
             }
-            finally
-            {
-                await _transaction.DisposeAsync();
-            }
         }
 
         public async Task DeleteSingleDataAsync(object[] id, string editorName)
         {
-            var _transaction = await _context.Database.BeginTransactionAsync();
+            await using var _transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var entity = await GetDataWithIdAsync(id);
@@ -137,107 +118,68 @@ namespace DotNetApiTemplate.Services
                 await _transaction.RollbackAsync();
                 throw;
             }
-            finally
-            {
-                await _transaction.DisposeAsync();
-            }
         }
 
-        public async Task<List<T>> GetAllDataAsync()
-        {
-            try
-            {
-                var items = await _context.Set<T>().ToListAsync();
-                return items;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
+        public async Task<List<T>> GetAllDataAsync() => await _context.Set<T>().ToListAsync();
 
         public async Task<(List<T>, int)> FindDataAsync(int currentPage, int pageSize, string? querySearch, Expression<Func<T, bool>>? predicate, List<(string, bool)> sortColumns)
         {
-            try
+            var items = _context.Set<T>().AsQueryable();
+
+            if (predicate != null)
+                items = items.Where(predicate);
+
+            if (!string.IsNullOrEmpty(querySearch))
+                items = PublicMethod.setWhereStr(querySearch, typeof(T).GetProperties(), items);
+
+            var total = await items.CountAsync();
+
+            if (sortColumns.Count > 0)
             {
-                var items = _context.Set<T>().AsQueryable();
-
-                if (predicate != null)
-                    items = items.Where(predicate);
-
-                if (!string.IsNullOrEmpty(querySearch))
-                    items = PublicMethod.setWhereStr(querySearch, typeof(T).GetProperties(), items);
-
-                var total = await items.CountAsync();
-
-                if (sortColumns.Count > 0)
+                bool isFirst = true;
+                foreach (var sortColumn in sortColumns)
                 {
-                    bool isFirst = true;
-                    foreach (var sortColumn in sortColumns)
-                    {
-                        var (propertyName, isAscending) = sortColumn;
-                        var parameter = Expression.Parameter(typeof(T), "x");
-                        var property = Expression.Property(parameter, propertyName);
-                        var lambda = Expression.Lambda(property, parameter);
-                        var methodName = isFirst ? (isAscending ? "OrderBy" : "OrderByDescending") :
-                                                    (isAscending ? "ThenBy" : "ThenByDescending");
+                    var (propertyName, isAscending) = sortColumn;
+                    var parameter = Expression.Parameter(typeof(T), "x");
+                    var property = Expression.Property(parameter, propertyName);
+                    var lambda = Expression.Lambda(property, parameter);
+                    var methodName = isFirst ? (isAscending ? "OrderBy" : "OrderByDescending") :
+                                                (isAscending ? "ThenBy" : "ThenByDescending");
 
-                        var genericMethod = typeof(Queryable).GetMethods().First(m => m.Name == methodName && m.GetParameters().Length == 2)
-                                                             .MakeGenericMethod(typeof(T), property.Type);
-                        items = (IQueryable<T>)genericMethod.Invoke(null, [items, lambda])!;
-                        isFirst = false;
-                    }
+                    var genericMethod = typeof(Queryable).GetMethods().First(m => m.Name == methodName && m.GetParameters().Length == 2)
+                                                         .MakeGenericMethod(typeof(T), property.Type);
+                    items = (IQueryable<T>)genericMethod.Invoke(null, [items, lambda])!;
+                    isFirst = false;
                 }
-
-                items = items.Skip((currentPage - 1) * pageSize).Take(pageSize);
-
-                return (await items.ToListAsync(), total);
             }
-            catch (Exception)
-            {
-                throw;
-            }
+
+            items = items.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+            return (await items.ToListAsync(), total);
         }
 
-        public object?[] GetPrimaryKeyValues(T entity)
-        {
-            try
-            {
-                return _context.Entry(entity).Metadata.FindPrimaryKey()!.Properties
-                               .Select(p => entity.GetType().GetProperty(p.Name)?.GetValue(entity))
-                               .ToArray();
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
+        public object?[] GetPrimaryKeyValues(T entity) => _context.Entry(entity).Metadata.FindPrimaryKey()!.Properties
+                                                                    .Select(p => entity.GetType().GetProperty(p.Name)?.GetValue(entity))
+                                                                    .ToArray();
 
         public async Task ContextCreateLog(T source, Log log)
         {
-            try
+            var entityLog = _mapper.Map<TLog>(source);
+            var entityLogProperties = typeof(TLog).GetProperties();
+
+            var logProperties = log.GetType().GetProperties();
+
+            foreach (var logProperty in logProperties)
             {
-                var entityLog = _mapper.Map<TLog>(source);
-                var entityLogProperties = typeof(TLog).GetProperties();
-
-                var logProperties = log.GetType().GetProperties();
-
-                foreach (var logProperty in logProperties)
+                var name = logProperty.Name;
+                var entityLogProperty = entityLogProperties.First(e => e.Name == name);
+                if (entityLogProperty != null && entityLogProperty.CanWrite)
                 {
-                    var name = logProperty.Name;
-                    var entityLogProperty = entityLogProperties.First(e => e.Name == name);
-                    if (entityLogProperty != null && entityLogProperty.CanWrite)
-                    {
-                        entityLogProperty.SetValue(entityLog, logProperty.GetValue(log));
-                    }
+                    entityLogProperty.SetValue(entityLog, logProperty.GetValue(log));
                 }
+            }
 
-                await _context.Set<TLog>().AddAsync(entityLog);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            await _context.Set<TLog>().AddAsync(entityLog);
         }
     }
 }
