@@ -46,7 +46,7 @@ namespace DotNetApiTemplate.Controllers
             if (!isValid)
             {
                 _logger.LogWarning("AD 登入驗證失敗: {UserName}, 原因: {Error}", userName, errorMessage);
-                return BadRequest(new AuthResponse { ErrorMessage = errorMessage ?? "驗證失敗" });
+                return BadRequest(errorMessage ?? "驗證失敗" );
             }
 
             var (adUserInfo, fetchErrorMessage) = await _authService.FetchAdUserPrincipal(userName);
@@ -54,7 +54,7 @@ namespace DotNetApiTemplate.Controllers
             if (adUserInfo == null)
             {
                 _logger.LogWarning("AD 使用者資料查詢失敗: {UserName}, 原因: {Error}", userName, fetchErrorMessage);
-                return BadRequest(new AuthResponse { ErrorMessage = fetchErrorMessage ?? "驗證失敗" });
+                return BadRequest(fetchErrorMessage ?? "驗證失敗" );
             }
 
             // 查詢 DB 是否已有該使用者
@@ -137,18 +137,12 @@ namespace DotNetApiTemplate.Controllers
             catch (SecurityTokenException ex)
             {
                 _logger.LogWarning(ex, "RefreshToken 驗證失敗");
-                return Unauthorized(new AuthResponse
-                {
-                    ErrorMessage = "Token 驗證失敗"
-                });
+                return Unauthorized("Token 驗證失敗");
             }
             catch (ArgumentException ex)
             {
                 _logger.LogWarning(ex, "RefreshToken 缺少必要 token");
-                return BadRequest(new AuthResponse
-                {
-                    ErrorMessage = "AccessToken 與 RefreshToken 為必填欄位"
-                });
+                return BadRequest("AccessToken 與 RefreshToken 為必填欄位");
             }
 
             var refreshUserId = refreshPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -157,30 +151,25 @@ namespace DotNetApiTemplate.Controllers
             if (string.IsNullOrWhiteSpace(refreshUserId) || string.IsNullOrWhiteSpace(accessUserId))
             {
                 _logger.LogWarning("RefreshToken 無法解析使用者識別");
-                return Unauthorized(new AuthResponse
-                {
-                    ErrorMessage = "Token 內容無效"
-                });
+                return Unauthorized("Token 內容無效");
             }
 
             if (!string.Equals(refreshUserId, accessUserId, StringComparison.Ordinal))
             {
                 _logger.LogWarning("RefreshToken 與 AccessToken 使用者不一致");
-                return Unauthorized(new AuthResponse
-                {
-                    ErrorMessage = "AccessToken 與 RefreshToken 不一致"
-                });
+                return Unauthorized("AccessToken 與 RefreshToken 不一致");
             }
+
+            var tokenType = refreshPrincipal.FindFirst("tokenType")?.Value;
+            if (tokenType != JwtTokenTypes.Refresh)
+                return Unauthorized("提供的 RefreshToken 型別不是 refresh");
 
             var user = await _authService.GetUserByIdAsync(refreshUserId);
 
             if (user == null)
             {
                 _logger.LogWarning("RefreshToken 查無使用者: {UserId}", refreshUserId);
-                return NotFound(new AuthResponse
-                {
-                    ErrorMessage = "查無使用者"
-                });
+                return NotFound("查無使用者");
             }
 
             var newAccessToken = _jwtService.GenerateToken(user, _jwtSettings.ExpiryInHours, JwtTokenTypes.Access);

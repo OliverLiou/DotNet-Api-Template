@@ -1,6 +1,7 @@
 using AutoMapper;
 using DotNetApiTemplate.DTOs.Entities;
 using DotNetApiTemplate.DTOs.EntityLogs;
+using DotNetApiTemplate.DTOs.ViewModels.Data;
 
 namespace DotNetApiTemplate
 {
@@ -9,6 +10,8 @@ namespace DotNetApiTemplate
         public AutoMapping()
         {
             #region  --Model--
+            CreateMap<Table1Request, Table1>();
+            CreateMap<Table1, Table1Response>();
             // CreateMap<, >().ReverseMap();
             #endregion
 

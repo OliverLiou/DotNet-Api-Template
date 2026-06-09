@@ -6,6 +6,6 @@ namespace DotNetApiTemplate.DTOs.ViewModels.Auth
     {
         public string? AccessToken { get; set; } = null;
         public string? RefreshToken { get; set; } = null;
-        public string ErrorMessage { get; set; } = string.Empty;
+        // public string ErrorMessage { get; set; } = string.Empty;
     }
 }

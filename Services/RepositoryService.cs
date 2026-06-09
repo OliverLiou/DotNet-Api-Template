@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +17,7 @@ namespace DotNetApiTemplate.Services
     /// </summary>
     public class RepositoryService<T, TLog>(TemplateContext context, IConfiguration configuration, IMapper mapper) : IRepositoryService<T, TLog> where T : class where TLog : class
     {
+        private static readonly MethodInfo StringContainsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
         private readonly TemplateContext _context = context;
         private readonly IMapper _mapper = mapper;
         private readonly string _create = configuration.GetSection("MethodName")["Create"]!;
@@ -129,8 +130,7 @@ namespace DotNetApiTemplate.Services
             if (predicate != null)
                 items = items.Where(predicate);
 
-            if (!string.IsNullOrEmpty(querySearch))
-                items = PublicMethod.setWhereStr(querySearch, typeof(T).GetProperties(), items);
+            items = ApplyKeywordSearch(items, querySearch);
 
             var total = await items.CountAsync();
 
@@ -156,6 +156,84 @@ namespace DotNetApiTemplate.Services
             items = items.Skip((currentPage - 1) * pageSize).Take(pageSize);
 
             return (await items.ToListAsync(), total);
+        }
+
+        private static IQueryable<T> ApplyKeywordSearch(IQueryable<T> items, string? querySearch)
+        {
+            if (string.IsNullOrWhiteSpace(querySearch))
+                return items;
+
+            var keyword = querySearch.Trim();
+            var parameter = Expression.Parameter(typeof(T), "x");
+            Expression? filterExpression = null;
+            var includeNumericFields = keyword.All(char.IsDigit);
+
+            foreach (var entityProperty in typeof(T).GetProperties())
+            {
+                var propertyExpression = BuildPropertyExpression(parameter, entityProperty, keyword, includeNumericFields);
+                if (propertyExpression == null)
+                    continue;
+
+                filterExpression = filterExpression == null
+                    ? propertyExpression
+                    : Expression.OrElse(filterExpression, propertyExpression);
+            }
+
+            if (filterExpression == null)
+                return items;
+
+            var predicate = Expression.Lambda<Func<T, bool>>(filterExpression, parameter);
+            return items.Where(predicate);
+        }
+
+        private static Expression? BuildPropertyExpression(ParameterExpression parameter, PropertyInfo entityProperty, string keyword, bool includeNumericFields)
+        {
+            var property = Expression.Property(parameter, entityProperty);
+
+            if (entityProperty.PropertyType == typeof(string))
+            {
+                var notNullExpression = Expression.NotEqual(property, Expression.Constant(null, typeof(string)));
+                var containsExpression = Expression.Call(property, StringContainsMethod, Expression.Constant(keyword));
+                return Expression.AndAlso(notNullExpression, containsExpression);
+            }
+
+            if (!includeNumericFields || !IsNumericType(entityProperty.PropertyType))
+                return null;
+
+            return BuildNumericContainsExpression(property, entityProperty.PropertyType, keyword);
+        }
+
+        private static Expression BuildNumericContainsExpression(MemberExpression property, Type propertyType, string keyword)
+        {
+            if (Nullable.GetUnderlyingType(propertyType) != null)
+            {
+                var hasValueExpression = Expression.Property(property, nameof(Nullable<int>.HasValue));
+                var valueExpression = Expression.Property(property, nameof(Nullable<int>.Value));
+                var containsExpression = BuildContainsExpression(valueExpression, valueExpression.Type, keyword);
+                return Expression.AndAlso(hasValueExpression, containsExpression);
+            }
+
+            return BuildContainsExpression(property, propertyType, keyword);
+        }
+
+        private static Expression BuildContainsExpression(Expression property, Type propertyType, string keyword)
+        {
+            var toStringMethod = propertyType.GetMethod(nameof(object.ToString), Type.EmptyTypes)!;
+            var stringValueExpression = Expression.Call(property, toStringMethod);
+            return Expression.Call(stringValueExpression, StringContainsMethod, Expression.Constant(keyword));
+        }
+
+        private static bool IsNumericType(Type propertyType)
+        {
+            var actualType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+
+            return actualType == typeof(byte)
+                   || actualType == typeof(short)
+                   || actualType == typeof(int)
+                   || actualType == typeof(long)
+                   || actualType == typeof(float)
+                   || actualType == typeof(double)
+                   || actualType == typeof(decimal);
         }
 
         public object?[] GetPrimaryKeyValues(T entity) => _context.Entry(entity).Metadata.FindPrimaryKey()!.Properties

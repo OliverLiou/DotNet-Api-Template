@@ -28,7 +28,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.7" />
     <PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.8" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.2" />
   </ItemGroup>
 
 </Project>

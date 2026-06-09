@@ -36,10 +36,10 @@ namespace DotNetApiTemplate.DTOs.Interfaces
         Task<List<T>> GetAllDataAsync();
 
         /// <summary>
-        /// 找出範圍內的資料, 可下條件式、排序
+        /// 找出範圍內的資料, 可下條件式、一般搜尋、排序
         /// </summary>
         Task<(List<T>, int)> FindDataAsync(int currentPage, int pageSize, string? querySearch,
-                                                Expression<Func<T, bool>>? predicate,
-                                                List<(string, bool)> sortColumns);
+                                           Expression<Func<T, bool>>? predicate,
+                                           List<(string, bool)> sortColumns);
     }
 }
