@@ -35,8 +35,11 @@ namespace DotNetApiTemplate.Services
                 var oldEntity = await GetDataWithIdAsync(id!);
                 var methodName = _create;
 
-                if (oldEntity == null)  
+                if (oldEntity == null)
+                {
                     await _context.Set<T>().AddAsync(entity);
+                    await _context.SaveChangesAsync();
+                }
                 else
                 {
                     methodName = _update;
@@ -44,14 +47,11 @@ namespace DotNetApiTemplate.Services
                     _context.Entry(oldEntity).CurrentValues.SetValues(entity);
                 }
 
-                await _context.SaveChangesAsync();
-
                 var log = new Log() { Method = methodName, EditorName = editorName, ExecuteTime = DateTime.UtcNow };
 
                 await ContextCreateLog(entity, log);
 
                 await _context.SaveChangesAsync();
-
                 await _transaction.CommitAsync();
             }
             catch (Exception)
@@ -132,7 +132,7 @@ namespace DotNetApiTemplate.Services
             }
         }
 
-        public async Task<List<T>> GetAllDataAsync() => await _context.Set<T>().ToListAsync();
+        public async Task<List<T>> GetAllDataAsync() => await _context.Set<T>().AsNoTracking().ToListAsync();
 
         public async Task<(List<T>, int)> FindDataAsync(int currentPage, int pageSize, string? querySearch, Expression<Func<T, bool>>? predicate, List<(string, bool)> sortColumns)
         {

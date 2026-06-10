@@ -23,7 +23,7 @@ namespace DotNetApiTemplate.Controllers
         private readonly IJwtService _jwtService = jwtService;
         private readonly IAuthService _authService = authService;
         private readonly IRepositoryService<User, UserLog> _userRepositoryService = userRepositoryService;
-        private readonly string _system_userName = configuration["SystemName"] ?? "System";
+        private readonly string _systemUserName = configuration["SystemName"] ?? "System";
         private readonly ILogger<AuthController> _logger = logger;
         private readonly JwtSettings _jwtSettings = jwtOptions.Value;
         
@@ -68,7 +68,7 @@ namespace DotNetApiTemplate.Controllers
                 IsActive = true
             };
             user.LastLoginAt = DateTime.UtcNow;
-            await _userRepositoryService.SaveSingleDataAsync(user, _system_userName);
+            await _userRepositoryService.SaveSingleDataAsync(user, _systemUserName);
 
             // 生成 JWT token
             var accessToken = _jwtService.GenerateToken(user, _jwtSettings.ExpiryInHours, JwtTokenTypes.Access);
@@ -156,7 +156,7 @@ namespace DotNetApiTemplate.Controllers
                 return Unauthorized("AccessToken 與 RefreshToken 不一致");
             }
 
-            var tokenType = refreshPrincipal.FindFirst("tokenType")?.Value;
+            var tokenType = refreshPrincipal.FindFirst("token_type")?.Value;
             if (tokenType != JwtTokenTypes.Refresh)
                 return Unauthorized("提供的 RefreshToken 型別不是 refresh");
 

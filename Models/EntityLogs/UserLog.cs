@@ -14,8 +14,6 @@ namespace DotNetApiTemplate.Models.EntityLogs
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public required int UserLogId { get; set; }
 
-        public override string Id { get; set; }
-
         public required string Method { get; set; }
 
         public required DateTime ExecuteTime { get; set; }

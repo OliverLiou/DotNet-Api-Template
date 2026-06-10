@@ -56,7 +56,6 @@ namespace DotNetApiTemplate.Controllers
         [SwaggerOperation(Description = "刪除指定的 Table1 資料")]
         public async Task<IActionResult> DeleteTable1Data(int table1Id)
         {
-            _ = await _repositoryService.GetDataWithIdAsync([table1Id]) ?? throw new KeyNotFoundException($"Table1 with ID {table1Id} not found.");
             var editorName = GetCurrentUserNameFromToken();
             await _repositoryService.DeleteSingleDataAsync([table1Id], editorName);
 
