@@ -1,7 +1,8 @@
 using AutoMapper;
-using DotNetApiTemplate.DTOs.Entities;
-using DotNetApiTemplate.DTOs.EntityLogs;
-using DotNetApiTemplate.DTOs.ViewModels.Data;
+using DotNetApiTemplate.DTOs.Requests.Data;
+using DotNetApiTemplate.DTOs.Responses.Data;
+using DotNetApiTemplate.Models.Entities;
+using DotNetApiTemplate.Models.EntityLogs;
 
 namespace DotNetApiTemplate
 {

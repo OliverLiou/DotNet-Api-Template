@@ -1,9 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using DotNetApiTemplate.DTOs.Entities;
-using DotNetApiTemplate.DTOs.Interfaces;
-using DotNetApiTemplate.DTOs.Settings;
+using DotNetApiTemplate.Models.Entities;
+using DotNetApiTemplate.Interfaces;
+using DotNetApiTemplate.Settings;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 
@@ -66,3 +66,4 @@ namespace DotNetApiTemplate.Services
         }
     }
 }
+

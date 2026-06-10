@@ -6,16 +6,16 @@ using System.Reflection;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using DotNetApiTemplate.DTOs.Context;
-using DotNetApiTemplate.DTOs.Interfaces;
-using DotNetApiTemplate.DTOs.EntityLogs;
+using DotNetApiTemplate.Models.Context;
+using DotNetApiTemplate.Interfaces;
+using DotNetApiTemplate.Models.EntityLogs;
 
 namespace DotNetApiTemplate.Services
 {
     /// <summary>
     /// 泛型 Repository 實作
     /// </summary>
-    public class RepositoryService<T, TLog>(TemplateContext context, IConfiguration configuration, IMapper mapper) : IRepositoryService<T, TLog> where T : class where TLog : class
+    public class RepositoryService<T, TLog>(TemplateContext context, IConfiguration configuration, IMapper mapper) : IRepositoryService<T, TLog> where T : class where TLog : class, ILogInterface
     {
         private static readonly MethodInfo StringContainsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
         private readonly TemplateContext _context = context;
@@ -67,26 +67,37 @@ namespace DotNetApiTemplate.Services
             try
             {
                 var utcNow = DateTime.UtcNow;
+                var existingEntities = new List<(T CurrentEntity, T InputEntity)>();
+                var newEntities = new List<T>();
 
                 foreach (var entity in entities)
                 {
                     var id = GetPrimaryKeyValues(entity);
-                    var oldEntity = await GetDataWithIdAsync(id!);
-                    var isUpdate = oldEntity != null;
-                    
-                    if (isUpdate)
-                    {
-                        _context.Entry(oldEntity).State = EntityState.Modified;
-                        _context.Entry(oldEntity).CurrentValues.SetValues(entity);
-                    }
-                    else
-                        await _context.Set<T>().AddAsync(entity);
-                    
-                    var log = new Log() { EditorName = editorName, Method = isUpdate ? _update : _create, ExecuteTime = utcNow };
+                    var currentEntity = await GetDataWithIdAsync(id!);
 
-                    await ContextCreateLog(entity, log);
+                    if (currentEntity == null)
+                        newEntities.Add(entity);
+                    else
+                        existingEntities.Add((currentEntity, entity));
+                }
+
+                foreach (var (currentEntity, inputEntity) in existingEntities)
+                {
+                    _context.Entry(currentEntity).CurrentValues.SetValues(inputEntity);
+                    await ContextCreateLog(inputEntity, new Log { EditorName = editorName, Method = _update, ExecuteTime = utcNow });
+                }
+
+                if (newEntities.Count > 0)
+                {
+                    await _context.Set<T>().AddRangeAsync(newEntities);
+                    //必須先儲存才能取得新增資料的Id，才能寫入Log
                     await _context.SaveChangesAsync();
                 }
+
+                foreach (var entity in newEntities)
+                    await ContextCreateLog(entity, new Log { EditorName = editorName, Method = _create, ExecuteTime = utcNow });
+
+                await _context.SaveChangesAsync();
                 await _transaction.CommitAsync();
             }
             catch (Exception)
@@ -243,18 +254,11 @@ namespace DotNetApiTemplate.Services
         public async Task ContextCreateLog(T source, Log log)
         {
             var entityLog = _mapper.Map<TLog>(source);
-            var entityLogProperties = typeof(TLog).GetProperties();
-
-            var logProperties = log.GetType().GetProperties();
-
-            foreach (var logProperty in logProperties)
+            if (entityLog is ILogInterface logEntity)
             {
-                var name = logProperty.Name;
-                var entityLogProperty = entityLogProperties.First(e => e.Name == name);
-                if (entityLogProperty != null && entityLogProperty.CanWrite)
-                {
-                    entityLogProperty.SetValue(entityLog, logProperty.GetValue(log));
-                }
+                logEntity.Method = log.Method;
+                logEntity.ExecuteTime = log.ExecuteTime;
+                logEntity.EditorName = log.EditorName;
             }
 
             await _context.Set<TLog>().AddAsync(entityLog);

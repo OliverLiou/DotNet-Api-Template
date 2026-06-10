@@ -1,11 +1,11 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using DotNetApiTemplate.DTOs.Context;
-using DotNetApiTemplate.DTOs.Entities;
-using DotNetApiTemplate.DTOs.EntityLogs;
-using DotNetApiTemplate.DTOs.Interfaces;
-using DotNetApiTemplate.DTOs.Settings;
+using DotNetApiTemplate.Models.Context;
+using DotNetApiTemplate.Models.Entities;
+using DotNetApiTemplate.Models.EntityLogs;
+using DotNetApiTemplate.Interfaces;
+using DotNetApiTemplate.Settings;
 using DotNetApiTemplate.Services;
 using DotNetApiTemplate.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -121,8 +121,13 @@ builder.Services.AddAutoMapper(_ => { }, typeof(Program).Assembly);
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
+}
+
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();

@@ -4,13 +4,13 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using DotNetApiTemplate.DTOs.ViewModels.Auth;
-using DotNetApiTemplate.DTOs.ViewModels.User;
-using DotNetApiTemplate.DTOs.Entities;
-using DotNetApiTemplate.DTOs.EntityLogs;
-using DotNetApiTemplate.DTOs.Interfaces;
-using DotNetApiTemplate.DTOs.Settings;
-using DotNetApiTemplate.Services;
+using DotNetApiTemplate.DTOs.Requests.Auth;
+using DotNetApiTemplate.DTOs.Responses.Auth;
+using DotNetApiTemplate.DTOs.Responses.User;
+using DotNetApiTemplate.Models.Entities;
+using DotNetApiTemplate.Models.EntityLogs;
+using DotNetApiTemplate.Interfaces;
+using DotNetApiTemplate.Settings;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -28,13 +28,9 @@ namespace DotNetApiTemplate.Controllers
         private readonly JwtSettings _jwtSettings = jwtOptions.Value;
         
         /// <summary>
-        /// AD 登入流程：
-        /// 1. 使用 DirectoryEntry 透過 LDAP Bind 驗證使用者帳號密碼。
-        /// 2. 驗證成功後，從 AD 擷取使用者資料 (姓名、Email)。
-        /// 3. 查詢 DB 是否已有該使用者，沒有則建立新使用者。
-        /// 4. 生成 JWT token 
+        /// AD 登入，驗證成功後會自動建立使用者資料（如果尚未存在），並回傳 JWT access token 和 refresh token
         /// </summary>
-        [HttpPost("hcmf")]
+        [HttpPost("AdLogin")]
         public async Task<ActionResult<AuthResponse>> AdLogin([FromBody] AdLoginRequest request)
         {
             var userName = request.UserName;
@@ -183,3 +179,4 @@ namespace DotNetApiTemplate.Controllers
 
     }
 }
+

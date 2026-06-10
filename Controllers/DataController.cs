@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
+using AutoMapper;
+using DotNetApiTemplate.DTOs.Requests.Data;
+using DotNetApiTemplate.DTOs.Responses.Data;
+using DotNetApiTemplate.Interfaces;
+using DotNetApiTemplate.Models.Entities;
+using DotNetApiTemplate.Models.EntityLogs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using DotNetApiTemplate.DTOs.Entities;
-using DotNetApiTemplate.DTOs.EntityLogs;
-using DotNetApiTemplate.DTOs.Interfaces;
-using DotNetApiTemplate.DTOs.ViewModels.Data;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
-using AutoMapper;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace DotNetApiTemplate.Controllers
 {
@@ -32,7 +32,7 @@ namespace DotNetApiTemplate.Controllers
 
         [HttpPost("Table1SingleSave")]
         [SwaggerOperation(Description = "儲存單筆 Table1 資料")]
-        public async Task<IActionResult> Table1SingleSave(Table1Request table1Request)
+        public async Task<IActionResult> Table1SingleSave([FromBody] Table1Request table1Request)
         {
             var editorName = GetCurrentUserNameFromToken();
 
@@ -44,7 +44,7 @@ namespace DotNetApiTemplate.Controllers
 
         [HttpPost("Table1MutipleSave")]
         [SwaggerOperation(Description = "儲存多筆 Table1 資料")]
-        public async Task<IActionResult> Table1MutipleSave(List<Table1Request> table1Requests)
+        public async Task<IActionResult> Table1MutipleSave([FromBody] List<Table1Request> table1Requests)
         {
             var editorName = GetCurrentUserNameFromToken();
             var table1s = _mapper.Map<List<Table1>>(table1Requests);
@@ -52,10 +52,11 @@ namespace DotNetApiTemplate.Controllers
             return Ok();
         }
 
-        [HttpPost("RemoveTable1Data")]
+        [HttpDelete("DeleteTable1Data")]
         [SwaggerOperation(Description = "刪除指定的 Table1 資料")]
-        public async Task<IActionResult> RemoveTable1Data(int table1Id)
+        public async Task<IActionResult> DeleteTable1Data(int table1Id)
         {
+            _ = await _repositoryService.GetDataWithIdAsync([table1Id]) ?? throw new KeyNotFoundException($"Table1 with ID {table1Id} not found.");
             var editorName = GetCurrentUserNameFromToken();
             await _repositoryService.DeleteSingleDataAsync([table1Id], editorName);
 
@@ -75,22 +76,23 @@ namespace DotNetApiTemplate.Controllers
         [SwaggerOperation(Description = "分頁查詢 Table1 資料")]
         public async Task<ActionResult<PagedResult<Table1Response>>> FindTable1(int currentPage, int pageSize, string? querySearch)
         {
-            // Expression<Func<Table1, bool>> filter = t => t.Column1 == "xxxw666";
             var sortColumns = new List<(string PropertyName, bool IsAscending)> { ("Table1Id", true) };
 
-            var (tuple1, tuple2) = await _repositoryService.FindDataAsync(currentPage, pageSize, querySearch, null, sortColumns);
-            
-            var table1List = _mapper.Map<List<Table1Response>>(tuple1);
-            var pagedResult = new PagedResult<Table1Response>(table1List, tuple2);
+            var (items, totalCount) = await _repositoryService.FindDataAsync(currentPage, pageSize, querySearch, null, sortColumns);
+
+            var table1List = _mapper.Map<List<Table1Response>>(items);
+            var pagedResult = new PagedResult<Table1Response>(table1List, totalCount);
             return Ok(pagedResult);
         }
-    
+
         /// <summary>
         /// 取得當前JWT Token的使用者名稱，供 RepositoryService 的 Log 紀錄使用
         /// </summary>
         private string GetCurrentUserNameFromToken()
         {
-            var nameClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name) ?? throw new InvalidOperationException("JWT Token does not contain Name Claim");
+            var nameClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)
+                ?? throw new InvalidOperationException("JWT Token does not contain Name Claim");
+
             return nameClaim.Value;
         }
     }

@@ -1,0 +1,23 @@
+{
+  "ConnectionStrings": {
+    "TemplateDBContext": "please provide your connection string here"
+  },
+  "JwtSettings": {
+    "SecretKey": "please provide your secret key here",
+    "Issuer": "please provide your issuer here",
+    "Audience": "please provide your audience here",
+    "ExpiryInHours": 2,
+    "RefreshTokenExpiryInHours": 24
+  },
+  "Cors": {
+    "AllowedOrigins": ["http://localhost:3000"]
+  },
+  "DomainAD": "please provide your domain AD here, in the format of ip:port",
+  "MethodName": {
+    "Create": "Create",
+    "Update": "Update",
+    "Delete": "Delete"
+  },
+  // you can change the system name if you want, it will be used in the log to indicate the operation is performed by system
+  "SystemName": "System" 
+}
