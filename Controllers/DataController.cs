@@ -16,16 +16,16 @@ namespace DotNetApiTemplate.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class DataController(IRepositoryService<Table1, Table1Log> repositoryService, IMapper mapper) : ControllerBase
+    public class DataController(IRepositoryService<Table1, Table1Log> table1RepositoryService, IMapper mapper) : ControllerBase
     {
-        private readonly IRepositoryService<Table1, Table1Log> _repositoryService = repositoryService;
+        private readonly IRepositoryService<Table1, Table1Log> _table1RepositoryService = table1RepositoryService;
         private readonly IMapper _mapper = mapper;
 
         [HttpGet("GetTable1/{table1Id}")]
         [SwaggerOperation(Description = "取得指定的 Table1 資料")]
         public async Task<IActionResult> GetTable1(int table1Id)
         {
-            var result = await _repositoryService.GetDataWithIdAsync([table1Id]);
+            var result = await _table1RepositoryService.GetDataWithIdAsync([table1Id]);
 
             return Ok(result);
         }
@@ -37,7 +37,7 @@ namespace DotNetApiTemplate.Controllers
             var editorName = GetCurrentUserNameFromToken();
 
             var table1 = _mapper.Map<Table1>(table1Request);
-            await _repositoryService.SaveSingleDataAsync(table1, editorName);
+            await _table1RepositoryService.SaveSingleDataAsync(table1, editorName);
 
             return Ok();
         }
@@ -48,7 +48,7 @@ namespace DotNetApiTemplate.Controllers
         {
             var editorName = GetCurrentUserNameFromToken();
             var table1s = _mapper.Map<List<Table1>>(table1Requests);
-            await _repositoryService.SaveMultipleDataAsync(table1s, editorName);
+            await _table1RepositoryService.SaveMultipleDataAsync(table1s, editorName);
             return Ok();
         }
 
@@ -57,7 +57,7 @@ namespace DotNetApiTemplate.Controllers
         public async Task<IActionResult> DeleteTable1Data(int table1Id)
         {
             var editorName = GetCurrentUserNameFromToken();
-            await _repositoryService.DeleteSingleDataAsync([table1Id], editorName);
+            await _table1RepositoryService.DeleteSingleDataAsync([table1Id], editorName);
 
             return Ok();
         }
@@ -66,7 +66,7 @@ namespace DotNetApiTemplate.Controllers
         [SwaggerOperation(Description = "取得所有 Table1 資料")]
         public async Task<ActionResult<List<Table1Response>>> GetTable1s()
         {
-            var allData = await _repositoryService.GetAllDataAsync();
+            var allData = await _table1RepositoryService.GetAllDataAsync();
             var response = _mapper.Map<List<Table1Response>>(allData);
             return Ok(response);
         }
@@ -77,7 +77,7 @@ namespace DotNetApiTemplate.Controllers
         {
             var sortColumns = new List<(string PropertyName, bool IsAscending)> { ("Table1Id", true) };
 
-            var (items, totalCount) = await _repositoryService.FindDataAsync(currentPage, pageSize, querySearch, null, sortColumns);
+            var (items, totalCount) = await _table1RepositoryService.FindDataAsync(currentPage, pageSize, querySearch, null, sortColumns);
 
             var table1List = _mapper.Map<List<Table1Response>>(items);
             var pagedResult = new PagedResult<Table1Response>(table1List, totalCount);

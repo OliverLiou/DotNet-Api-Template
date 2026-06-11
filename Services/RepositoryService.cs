@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using DotNetApiTemplate.Models.Context;
 using DotNetApiTemplate.Interfaces;
 using DotNetApiTemplate.Models.EntityLogs;
@@ -28,7 +29,8 @@ namespace DotNetApiTemplate.Services
 
         public async Task SaveSingleDataAsync(T entity, string editorName)
         {
-            await using var _transaction = await _context.Database.BeginTransactionAsync();
+            var hasExistingTransaction = _context.Database.CurrentTransaction != null;
+            var transaction = hasExistingTransaction ? null : await _context.Database.BeginTransactionAsync();
             try
             {
                 var id = GetPrimaryKeyValues(entity);
@@ -52,18 +54,33 @@ namespace DotNetApiTemplate.Services
                 await ContextCreateLog(entity, log);
 
                 await _context.SaveChangesAsync();
-                await _transaction.CommitAsync();
+                
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception)
             {
-                await _transaction.RollbackAsync();
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                }
                 throw;
+            }
+            finally
+            {
+                if (transaction != null)
+                {
+                    await transaction.DisposeAsync();
+                }
             }
         }
 
         public async Task SaveMultipleDataAsync(List<T> entities, string editorName)
         {
-            await using var _transaction = await _context.Database.BeginTransactionAsync();
+            var hasExistingTransaction = _context.Database.CurrentTransaction != null;
+            var transaction = hasExistingTransaction ? null : await _context.Database.BeginTransactionAsync();
             try
             {
                 var utcNow = DateTime.UtcNow;
@@ -98,37 +115,62 @@ namespace DotNetApiTemplate.Services
                     await ContextCreateLog(entity, new Log { EditorName = editorName, Method = _create, ExecuteTime = utcNow });
 
                 await _context.SaveChangesAsync();
-                await _transaction.CommitAsync();
+                
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception)
             {
-                await _transaction.RollbackAsync();
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                }
                 throw;
+            }
+            finally
+            {
+                if (transaction != null)
+                {
+                    await transaction.DisposeAsync();
+                }
             }
         }
 
         public async Task DeleteSingleDataAsync(object[] id, string editorName)
         {
-            await using var _transaction = await _context.Database.BeginTransactionAsync();
+            var hasExistingTransaction = _context.Database.CurrentTransaction != null;
+            var transaction = hasExistingTransaction ? null : await _context.Database.BeginTransactionAsync();
             try
             {
-                var entity = await GetDataWithIdAsync(id);
-
-                if (entity == null)
-                    throw new Exception(string.Format("{0}中找不到Id為{1}的資料", typeof(T).Name, string.Join(",", id.Select(s => s))));
-
+                var entity = await GetDataWithIdAsync(id) ?? throw new KeyNotFoundException(string.Format("{0}中找不到Id為{1}的資料", typeof(T).Name, string.Join(",", id.Select(s => s))));
                 var log = new Log() { EditorName = editorName, ExecuteTime = DateTime.UtcNow, Method = _delete };
                 await ContextCreateLog(entity, log);
 
                 _context.Entry(entity).State = EntityState.Deleted;
 
                 await _context.SaveChangesAsync();
-                await _transaction.CommitAsync();
+                
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception)
             {
-                await _transaction.RollbackAsync();
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                }
                 throw;
+            }
+            finally
+            {
+                if (transaction != null)
+                {
+                    await transaction.DisposeAsync();
+                }
             }
         }
 
@@ -136,7 +178,7 @@ namespace DotNetApiTemplate.Services
 
         public async Task<(List<T>, int)> FindDataAsync(int currentPage, int pageSize, string? querySearch, Expression<Func<T, bool>>? predicate, List<(string, bool)> sortColumns)
         {
-            var items = _context.Set<T>().AsQueryable();
+            var items = _context.Set<T>().AsNoTracking().AsQueryable();
 
             if (predicate != null)
                 items = items.Where(predicate);
@@ -159,7 +201,7 @@ namespace DotNetApiTemplate.Services
 
                     var genericMethod = typeof(Queryable).GetMethods().First(m => m.Name == methodName && m.GetParameters().Length == 2)
                                                          .MakeGenericMethod(typeof(T), property.Type);
-                    items = (IQueryable<T>)genericMethod.Invoke(null, [items, lambda])!;
+                    items = (IQueryable<T>)genericMethod.Invoke(null, new object[] { items, lambda })!;
                     isFirst = false;
                 }
             }
@@ -247,11 +289,11 @@ namespace DotNetApiTemplate.Services
                    || actualType == typeof(decimal);
         }
 
-        public object?[] GetPrimaryKeyValues(T entity) => _context.Entry(entity).Metadata.FindPrimaryKey()!.Properties
+        private object?[] GetPrimaryKeyValues(T entity) => _context.Entry(entity).Metadata.FindPrimaryKey()!.Properties
                                                                     .Select(p => entity.GetType().GetProperty(p.Name)?.GetValue(entity))
                                                                     .ToArray();
 
-        public async Task ContextCreateLog(T source, Log log)
+        private async Task ContextCreateLog(T source, Log log)
         {
             var entityLog = _mapper.Map<TLog>(source);
             if (entityLog is ILogInterface logEntity)

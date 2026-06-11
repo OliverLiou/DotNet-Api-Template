@@ -18,11 +18,11 @@ namespace DotNetApiTemplate.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IJwtService jwtService, IAuthService authService, IRepositoryService<User, UserLog> userRepositoryService, IConfiguration configuration, ILogger<AuthController> logger, IOptions<JwtSettings> jwtOptions) : ControllerBase
+    public class AuthController(IJwtService jwtService, IAuthService authService, ILogicService logicService, IConfiguration configuration, ILogger<AuthController> logger, IOptions<JwtSettings> jwtOptions) : ControllerBase
     {
         private readonly IJwtService _jwtService = jwtService;
         private readonly IAuthService _authService = authService;
-        private readonly IRepositoryService<User, UserLog> _userRepositoryService = userRepositoryService;
+        private readonly ILogicService _logicService = logicService;
         private readonly string _systemUserName = configuration["SystemName"] ?? "System";
         private readonly ILogger<AuthController> _logger = logger;
         private readonly JwtSettings _jwtSettings = jwtOptions.Value;
@@ -53,22 +53,8 @@ namespace DotNetApiTemplate.Controllers
                 return BadRequest(fetchErrorMessage ?? "驗證失敗" );
             }
 
-            // 查詢 DB 是否已有該使用者
-            var user = await _authService.GetUserByUserNameAsync(userName);
-
-            // 如果沒有，建立新使用者
-            user ??= new User
-            {
-                UserName = userName,
-                EmployeeName = (adUserInfo.Surname ?? null) + (adUserInfo.GivenName ?? null),
-                Email = adUserInfo.EmailAddress ?? null,
-                NormalizedUserName = userName.ToUpper(),
-                NormalizedEmail = adUserInfo.EmailAddress?.ToUpper() ?? null,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-            user.LastLoginAt = DateTime.UtcNow;
-            await _userRepositoryService.SaveSingleDataAsync(user, _systemUserName);
+            // 透過 LogicService 建立或更新使用者資料，並更新最後登入時間
+            var user = await _logicService.CreateOrUpdateUserOnLoginAsync(userName, adUserInfo, _systemUserName);
 
             // 生成 JWT token
             var accessToken = _jwtService.GenerateToken(user, _jwtSettings.ExpiryInHours, JwtTokenTypes.Access);

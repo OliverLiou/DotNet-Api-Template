@@ -7,7 +7,6 @@ namespace DotNetApiTemplate.Interfaces
     /// </summary>
     /// <typeparam name="T">實體類型</typeparam>
     /// <typeparam name="TLog">日誌實體類型</typeparam>
-    /// <typeparam name="ILogInterface">日誌介面類型</typeparam>
     public interface IRepositoryService<T, TLog> where T : class where TLog : class, ILogInterface
     {
         /// <summary>

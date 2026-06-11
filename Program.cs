@@ -15,9 +15,9 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-const string templateContextName = "TemplateDBContext";
-var connectionString = builder.Configuration.GetConnectionString(templateContextName)
-    ?? throw new InvalidOperationException($"Connection string '{templateContextName}' is required.");
+const string contextName = "TemplateDBContext";
+var connectionString = builder.Configuration.GetConnectionString(contextName)
+    ?? throw new InvalidOperationException($"Connection string '{contextName}' is required.");
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 
@@ -68,6 +68,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddScoped(typeof(IRepositoryService<,>), typeof(RepositoryService<,>));
+builder.Services.AddScoped<ILogicService, LogicService>();
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
