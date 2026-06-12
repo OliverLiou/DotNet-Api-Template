@@ -1,6 +1,6 @@
 {
   "ConnectionStrings": {
-    "TemplateDBContext": "please provide your connection string here"
+    "DefaultConnection": "please provide your connection string here"
   },
   "JwtSettings": {
     "SecretKey": "please provide your secret key here",

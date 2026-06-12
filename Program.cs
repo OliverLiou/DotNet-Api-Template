@@ -15,9 +15,9 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-const string contextName = "TemplateDBContext";
-var connectionString = builder.Configuration.GetConnectionString(contextName)
-    ?? throw new InvalidOperationException($"Connection string '{contextName}' is required.");
+const string connectionName = "DefaultConnection";
+var connectionString = builder.Configuration.GetConnectionString(connectionName)
+    ?? throw new InvalidOperationException($"Connection string '{connectionName}' is required.");
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 
