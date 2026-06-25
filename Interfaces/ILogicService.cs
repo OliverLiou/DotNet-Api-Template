@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using DotNetApiTemplate.Models.Entities;
 using DotNetApiTemplate.DTOs.Responses.User;
+using DotNetApiTemplate.DTOs.Requests.User;
 
 namespace DotNetApiTemplate.Interfaces
 {
@@ -17,5 +19,20 @@ namespace DotNetApiTemplate.Interfaces
         /// <param name="systemUserName">系統操作者名稱</param>
         /// <returns>已建立或更新的 User 實體</returns>
         Task<User> CreateOrUpdateUserOnLoginAsync(string userName, AdUserInfoDto adUserInfo, string systemUserName);
+
+        /// <summary>
+        /// 更新使用者基本資料
+        /// </summary>
+        Task UpdateUserAsync(string userId, UpdateUserRequest request, string editorName);
+
+        /// <summary>
+        /// 更新使用者角色權限
+        /// </summary>
+        Task UpdateUserRolesAsync(string userId, List<string> roles, string editorName);
+
+        /// <summary>
+        /// 更新使用者最後登入時間
+        /// </summary>
+        Task UpdateLastLoginTimeAsync(User user, string systemUserName);
     }
 }

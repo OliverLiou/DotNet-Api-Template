@@ -45,7 +45,7 @@ cd DotNet-Api-Template
   - `Issuer`: 發行者標識。
   - `Audience`: 接收者標識。
 - **`Cors.AllowedOrigins`**: 設定前端網址以允許跨來源請求 (預設為 `http://localhost:3000`)。
-- **`DomainAD`**: 設定 Active Directory 的伺服器網域與埠號（格式為 `ip:port`），供 `AuthService` 做 AD 驗證使用。
+- **`LdapServer`**: 設定 Active Directory/LDAP 伺服器的 FQDN，供 `AuthService` 做跨平台 AD 驗證使用。
 - **`SystemName`**: 系統背景或定時排程操作者名稱，用於資料庫背景寫入時的日誌紀錄。
 
 ### 3. 建立並執行資料庫遷移 (Migrations)

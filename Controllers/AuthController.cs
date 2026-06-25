@@ -36,21 +36,13 @@ namespace DotNetApiTemplate.Controllers
             var userName = request.UserName;
             var password = request.Password;
 
-            // 透過 AD 驗證帳號密碼
-            var (isValid, errorMessage) = await _authService.AdAuthenticateAsync(userName, password);
+            // 透過 AD 驗證帳號密碼，並同時取得使用者資料
+            var (isValid, adUserInfo, errorMessage) = await _authService.AuthenticateAndFetchAdUserAsync(userName, password);
 
-            if (!isValid)
+            if (!isValid || adUserInfo == null)
             {
                 _logger.LogWarning("AD 登入驗證失敗: {UserName}, 原因: {Error}", userName, errorMessage);
-                return BadRequest(errorMessage ?? "驗證失敗" );
-            }
-
-            var (adUserInfo, fetchErrorMessage) = await _authService.FetchAdUserPrincipal(userName);
-
-            if (adUserInfo == null)
-            {
-                _logger.LogWarning("AD 使用者資料查詢失敗: {UserName}, 原因: {Error}", userName, fetchErrorMessage);
-                return BadRequest(fetchErrorMessage ?? "驗證失敗" );
+                return BadRequest(errorMessage ?? "驗證失敗");
             }
 
             // 透過 LogicService 建立或更新使用者資料，並更新最後登入時間
@@ -63,6 +55,38 @@ namespace DotNetApiTemplate.Controllers
             return Ok(new AuthResponse { AccessToken = accessToken, RefreshToken = refreshToken });
         }
 
+        /// <summary>
+        /// 一般登入，驗證成功後會回傳 JWT access token 和 refresh token
+        /// </summary>
+        [HttpPost("Login")]
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+        {
+            var userName = request.UserName;
+            var password = request.Password;
+
+            var (isValid, user) = await _authService.PasswordAuthenticateAsync(userName, password);
+
+            if (!isValid || user == null)
+            {
+                _logger.LogWarning("一般登入驗證失敗: {UserName}", userName);
+                return BadRequest("帳號或密碼錯誤");
+            }
+
+            if (!user.IsActive)
+            {
+                _logger.LogWarning("一般登入失敗：帳號已停用: {UserName}", userName);
+                return BadRequest("帳號已停用");
+            }
+
+            // 更新最後登入時間
+            await _logicService.UpdateLastLoginTimeAsync(user, _systemUserName);
+
+            // 生成 JWT token
+            var accessToken = _jwtService.GenerateToken(user, _jwtSettings.ExpiryInHours, JwtTokenTypes.Access);
+            var refreshToken = _jwtService.GenerateToken(user, _jwtSettings.RefreshTokenExpiryInHours, JwtTokenTypes.Refresh);
+
+            return Ok(new AuthResponse { AccessToken = accessToken, RefreshToken = refreshToken });
+        }
 
         /// <summary>
         /// 取得使用者個人資料，包含姓名、Email、角色等資訊

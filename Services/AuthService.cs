@@ -1,6 +1,5 @@
-using System.DirectoryServices;
-using System.DirectoryServices.AccountManagement;
-using System.Runtime.InteropServices;
+using System.DirectoryServices.Protocols;
+using System.Net;
 using DotNetApiTemplate.DTOs.Responses.User;
 using DotNetApiTemplate.Interfaces;
 using DotNetApiTemplate.Models.Context;
@@ -17,83 +16,104 @@ namespace DotNetApiTemplate.Services
         private readonly UserManager<User> _userManager = userManager;
 
         /// <summary>
-        /// 透過 DirectoryEntry (LDAP Bind) 驗證使用者帳號密碼，
-        /// 僅做身分驗證，不抓取使用者資料。
+        /// 透過 LdapDirectoryIdentifier 與 LdapConnection 進行跨平台 AD 身分驗證與資料查詢。
         /// </summary>
-        public Task<(bool IsValid, string? ErrorMessage)> AdAuthenticateAsync(string username, string password)
+        public Task<(bool IsValid, AdUserInfoDto? AdUserInfo, string? ErrorMessage)> AuthenticateAndFetchAdUserAsync(string username, string password)
         {
             try
             {
-                var domainAd = _configuration["DomainAD"]
-                    ?? throw new InvalidOperationException("DomainAD configuration is required.");
+                var ldapServer = _configuration["LdapServer"]
+                    ?? throw new InvalidOperationException("LdapServer configuration is required.");
 
-                var ldapPath = $"LDAP://{domainAd}";
+                string domain = "";
+                int firstDotIndex = ldapServer.IndexOf('.');
+                if (firstDotIndex != -1)
+                    domain = ldapServer.Substring(firstDotIndex + 1);
 
-                // 需要在建構子中明確指定 AuthenticationTypes，強制它不使用當前 Windows 身分的 Kerberos Ticket
-                using var entry = new DirectoryEntry(ldapPath, username, password, AuthenticationTypes.Secure);
-                _ = entry.NativeObject;
+                var identifier = new LdapDirectoryIdentifier(ldapServer);
+                using var connection = new LdapConnection(identifier);
 
-                return Task.FromResult<(bool, string?)>((true, null));
-            }
-            catch (COMException comEx)
-            {
-                var errorCode = unchecked((uint)comEx.ErrorCode);
-                var message = errorCode switch
+                connection.SessionOptions.ProtocolVersion = 3;
+                // 使用 Negotiate 可以在多數環境下自動與 AD 協調 Windows 整合驗證 (Kerberos/NTLM)
+                connection.AuthType = AuthType.Negotiate;
+                connection.Credential = new NetworkCredential(username, password, domain);
+                connection.Bind();
+
+                //查詢 Root DSE 取得 defaultNamingContext
+                var rootDseRequest = new SearchRequest(
+                    distinguishedName: string.Empty,
+                    ldapFilter: "(objectClass=*)",
+                    searchScope: SearchScope.Base,
+                    attributeList: "defaultNamingContext"
+                );
+
+                var rootDseResponse = (SearchResponse)connection.SendRequest(rootDseRequest);
+                if (rootDseResponse.Entries.Count == 0 || !rootDseResponse.Entries[0].Attributes.Contains("defaultNamingContext"))
                 {
-                    0x8007052E => "帳號或密碼錯誤",
-                    0x80070775 => "帳號已被鎖定，請聯繫管理員",
-                    0x80070533 => "帳號已停用",
-                    0x80070532 => "密碼已過期，請先變更密碼",
-                    0x80070773 => "密碼必須變更，請先至系統變更密碼",
-                    0x8007052F => "帳號目前有登入限制，請聯繫管理員",
-                    0x80070774 => "帳號已過期",
-                    0x80070701 => "帳號的登入時間已受限制",
-                    0x80070569 => "登入失敗：帳號類型限制",
-                    _ => $"AD 驗證失敗 (錯誤碼: 0x{errorCode:X8}): {comEx.Message}",
-                };
+                    return Task.FromResult<(bool, AdUserInfoDto?, string?)>((false, null, "無法從 AD 取得 defaultNamingContext"));
+                }
 
-                return Task.FromResult<(bool, string?)>((false, message));
-            }
-            catch (Exception ex)
-            {
-                return Task.FromResult<(bool, string?)>((false, $"AD 驗證發生錯誤: {ex.Message}"));
-            }
-        }
+                var defaultNamingContext = rootDseResponse.Entries[0].Attributes["defaultNamingContext"][0].ToString();
 
-        /// <summary>
-        /// 透過 PrincipalContext 及 FindByIdentity 查詢 AD 使用者資料，
-        /// 回傳 AdUserInfoDto（已在 context 存活期間擷取資料）。
-        /// </summary>
-        public Task<(AdUserInfoDto? AdUserInfo, string? ErrorMessage)> FetchAdUserPrincipal(string username)
-        {
-            try
-            {
-                var domainAd = _configuration["DomainAD"]
-                    ?? throw new InvalidOperationException("DomainAD configuration is required.");
+                // 使用 sAMAccountName 進行搜尋以取得使用者資訊
+                var searchFilter = $"(&(objectClass=user)(sAMAccountName={username}))";
+                var searchRequest = new SearchRequest(
+                    defaultNamingContext,
+                    searchFilter,
+                    SearchScope.Subtree,
+                    "sn", "givenName", "mail", "displayName"
+                );
 
-                using var principalContext = new PrincipalContext(ContextType.Domain, domainAd);
-                using var userPrincipal = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, username);
+                var searchResponse = (SearchResponse)connection.SendRequest(searchRequest);
+                if (searchResponse.Entries.Count == 0)
+                {
+                    return Task.FromResult<(bool, AdUserInfoDto?, string?)>((false, null, $"找不到 AD 使用者: {username}"));
+                }
 
-                if (userPrincipal == null)
-                    return Task.FromResult<(AdUserInfoDto?, string?)>((null, $"找不到使用者 {username}"));
-
+                var entry = searchResponse.Entries[0];
                 var adUserInfo = new AdUserInfoDto
                 {
-                    Surname = userPrincipal.Surname,
-                    GivenName = userPrincipal.GivenName,
-                    EmailAddress = userPrincipal.EmailAddress,
-                    DisplayName = userPrincipal.DisplayName
+                    Surname = entry.Attributes.Contains("sn") ? entry.Attributes["sn"][0]?.ToString() : null,
+                    GivenName = entry.Attributes.Contains("givenName") ? entry.Attributes["givenName"][0]?.ToString() : null,
+                    EmailAddress = entry.Attributes.Contains("mail") ? entry.Attributes["mail"][0]?.ToString() : null,
+                    DisplayName = entry.Attributes.Contains("displayName") ? entry.Attributes["displayName"][0]?.ToString() : null
                 };
 
-                return Task.FromResult<(AdUserInfoDto?, string?)>((adUserInfo, null));
+                return Task.FromResult<(bool, AdUserInfoDto?, string?)>((true, adUserInfo, null));
             }
-            catch (PrincipalServerDownException)
+            catch (LdapException ldapEx)
             {
-                return Task.FromResult<(AdUserInfoDto?, string?)>((null, "AD 伺服器無法連線，請稍後再試"));
+                var message = ldapEx.ErrorCode switch
+                {
+                    49 => "帳號或密碼錯誤",
+                    _ => $"AD 驗證失敗 (錯誤碼: {ldapEx.ErrorCode}): {ldapEx.Message}"
+                };
+
+                if (!string.IsNullOrEmpty(ldapEx.ServerErrorMessage))
+                {
+                    if (ldapEx.ServerErrorMessage.Contains("data 52e"))
+                        message = "帳號或密碼錯誤";
+                    else if (ldapEx.ServerErrorMessage.Contains("data 775"))
+                        message = "帳號已被鎖定";
+                    else if (ldapEx.ServerErrorMessage.Contains("data 533"))
+                        message = "帳號已停用"; //這個會直接連線失敗
+                    else if (ldapEx.ServerErrorMessage.Contains("data 532") || ldapEx.ServerErrorMessage.Contains("data 773"))
+                        message = "密碼已過期或必須變更，請先變更密碼";
+                    else if (ldapEx.ServerErrorMessage.Contains("data 701"))
+                        message = "帳號已過期";
+                    else
+                        message = $"AD 驗證失敗: {ldapEx.ServerErrorMessage}";
+                }
+
+                return Task.FromResult<(bool, AdUserInfoDto?, string?)>((false, null, message));
             }
             catch (Exception ex)
             {
-                return Task.FromResult<(AdUserInfoDto?, string?)>((null, $"查詢 AD 使用者資料發生錯誤: {ex.Message}"));
+                if (ex.Message.Contains("The server is unavailable", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult<(bool, AdUserInfoDto?, string?)>((false, null, "帳號或密碼錯誤"));
+                }
+                return Task.FromResult<(bool, AdUserInfoDto?, string?)>((false, null, $"AD 驗證發生錯誤: {ex.Message}"));
             }
         }
 
@@ -102,5 +122,20 @@ namespace DotNetApiTemplate.Services
         public async Task<User?> GetUserByIdAsync(string userId) => await _userManager.FindByIdAsync(userId);
 
         public async Task<IList<string>> GetUserRoleNamesAsync(User user) => await _userManager.GetRolesAsync(user);
+
+        /// <summary>
+        /// 驗證一般登入的帳號與密碼雜湊
+        /// </summary>
+        public async Task<(bool IsSuccess, User? User)> PasswordAuthenticateAsync(string username, string password)
+        {
+            var user = await GetUserByUserNameAsync(username);
+            if (user == null)
+            {
+                return (false, null);
+            }
+
+            var isValid = await _userManager.CheckPasswordAsync(user, password);
+            return (isValid, isValid ? user : null);
+        }
     }
 }

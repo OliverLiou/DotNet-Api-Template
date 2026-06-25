@@ -11,7 +11,7 @@ namespace DotNetApiTemplate.Models.Entities
     {
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LastLoginAt { get; set; } = null;
 
         public bool IsActive { get; set; } = true;
     }
