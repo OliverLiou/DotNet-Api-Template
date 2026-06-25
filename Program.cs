@@ -20,6 +20,7 @@ var connectionString = builder.Configuration.GetConnectionString(connectionName)
     ?? throw new InvalidOperationException($"Connection string '{connectionName}' is required.");
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.Configure<LdapSettings>(builder.Configuration.GetSection(LdapSettings.SectionName));
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
     ?? throw new InvalidOperationException("JwtSettings configuration is required.");

@@ -47,10 +47,13 @@ namespace DotNetApiTemplate.Controllers
 
             // 透過 LogicService 建立或更新使用者資料，並更新最後登入時間
             var user = await _logicService.CreateOrUpdateUserOnLoginAsync(userName, adUserInfo, _systemUserName);
+            
 
             // 生成 JWT token
-            var accessToken = _jwtService.GenerateToken(user, _jwtSettings.ExpiryInHours, JwtTokenTypes.Access);
-            var refreshToken = _jwtService.GenerateToken(user, _jwtSettings.RefreshTokenExpiryInHours, JwtTokenTypes.Refresh);
+            var expiryInHours = _jwtSettings.ExpiryInHours;
+            var refreshTokenExpiryInHours = _jwtSettings.RefreshTokenExpiryInHours;
+            var accessToken = _jwtService.GenerateToken(user, expiryInHours, JwtTokenTypes.Access);
+            var refreshToken = _jwtService.GenerateToken(user, refreshTokenExpiryInHours, JwtTokenTypes.Refresh);
 
             return Ok(new AuthResponse { AccessToken = accessToken, RefreshToken = refreshToken });
         }
