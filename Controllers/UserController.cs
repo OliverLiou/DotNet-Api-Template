@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
 using DotNetApiTemplate.DTOs.Requests.User;
+using DotNetApiTemplate.DTOs.Responses;
 using DotNetApiTemplate.DTOs.Responses.Data;
 using DotNetApiTemplate.Interfaces;
 using DotNetApiTemplate.Models.Entities;
@@ -21,15 +22,13 @@ namespace DotNetApiTemplate.Controllers
     [ApiController]
     [Route("api/[controller]")]
     public class UserController(
-        IRepositoryService<User, UserLog> userRepositoryService,
-        UserManager<User> userManager,
         IMapper mapper,
-        ILogicService logicService) : ControllerBase
+        IUserService userService,
+        IRepositoryService<User, UserLog> userRepositoryService) : ControllerBase
     {
         private readonly IRepositoryService<User, UserLog> _userRepositoryService = userRepositoryService;
-        private readonly UserManager<User> _userManager = userManager;
         private readonly IMapper _mapper = mapper;
-        private readonly ILogicService _logicService = logicService;
+        private readonly IUserService _userService = userService;
 
         [HttpGet("FindUsers/{currentPage}/{pageSize}")]
         [SwaggerOperation(Description = "分頁查詢使用者資料")]
@@ -51,12 +50,12 @@ namespace DotNetApiTemplate.Controllers
             try
             {
                 var editorName = GetCurrentUserNameFromToken();
-                await _logicService.UpdateUserAsync(userId, request, editorName);
+                await _userService.UpdateUserAsync(userId, request, editorName);
                 return Ok();
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new ErrorResponse { Message = ex.Message });
             }
         }
 
@@ -68,16 +67,16 @@ namespace DotNetApiTemplate.Controllers
             try
             {
                 var editorName = GetCurrentUserNameFromToken();
-                await _logicService.UpdateUserRolesAsync(userId, request.Roles, editorName);
+                await _userService.UpdateUserRolesAsync(userId, request.Roles, editorName);
                 return Ok();
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new ErrorResponse { Message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new ErrorResponse { Message = "更新角色權限時發生錯誤" });
             }
         }
 

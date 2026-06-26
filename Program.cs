@@ -70,6 +70,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddScoped(typeof(IRepositoryService<,>), typeof(RepositoryService<,>));
 builder.Services.AddScoped<ILogicService, LogicService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

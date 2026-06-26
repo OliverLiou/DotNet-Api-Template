@@ -18,8 +18,8 @@ namespace DotNetApiTemplate.Controllers
     [ApiController]
     [Route("api/[controller]")]
     public class DataController(
-        IRepositoryService<Table1, Table1Log> table1RepositoryService,
-        IMapper mapper) : ControllerBase
+        IMapper mapper,
+        IRepositoryService<Table1, Table1Log> table1RepositoryService) : ControllerBase
     {
         private readonly IRepositoryService<Table1, Table1Log> _table1RepositoryService = table1RepositoryService;
         private readonly IMapper _mapper = mapper;

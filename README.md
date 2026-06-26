@@ -88,8 +88,8 @@ dotnet run
 ```text
 DotNet-Api-Template/
 ├── Controllers/         # API 控制器層，負責接收 HTTP 請求 (如 AuthController.cs, UserController.cs, DataController.cs)
-├── DTOs/                # 資料傳輸物件層，細分為 Requests (請求) 與 Responses (回應)
-├── Interfaces/          # 系統核心服務與邏輯層的介面定義 (如 IRepositoryService.cs, ILogicService.cs)
+├── DTOs/                # 資料傳輸物件層，細分為 Requests (請求) 與 Responses (回應，含統一錯誤回應格式 ErrorResponse.cs)
+├── Interfaces/          # 系統核心服務與邏輯層的介面定義 (如 IRepositoryService.cs, IUserService.cs, ILogicService.cs)
 ├── Middlewares/         # 自定義中介軟體 (如全域異常處理器 GlobalExceptionHandler.cs)
 ├── Migrations/          # EF Core Code First 資料庫遷移歷史紀錄
 ├── Models/              # 資料庫實體與資料庫上下文
@@ -97,7 +97,7 @@ DotNet-Api-Template/
 │   ├── Entities/        # 資料庫主實體類別 (如 User.cs, Role.cs, Table1.cs)
 │   └── EntityLogs/      # 操作日誌實體類別 (如 UserLog.cs, UserRoleLog.cs, Table1Log.cs)
 ├── Properties/          # 專案啟動與偵錯配置檔 (launchSettings.json)
-├── Services/            # 實作服務層，包括商業邏輯 (LogicService.cs)、AD驗證 (AuthService.cs)、JWT安全 (JwtService.cs) 與倉儲 (RepositoryService.cs)
+├── Services/            # 實作服務層，包括商業邏輯 (UserService.cs, LogicService.cs)、AD驗證 (AuthService.cs)、JWT安全 (JwtService.cs) 與倉儲 (RepositoryService.cs)
 ├── Settings/            # 強型別組態定義 (如 JwtSettings.cs, LdapSettings.cs)
 ├── AutoMapping.cs       # AutoMapper 映射設定檔 (AutoMapping.cs)
 ├── Program.cs           # 應用程式進入點與 DI 容器註冊中心 (Program.cs)
@@ -108,7 +108,7 @@ DotNet-Api-Template/
 
 ## 🏗️ 系統架構與設計理念
 
-專案採用嚴謹的**四層分層架構 (Controller -> Logic -> Service -> Repository -> DbContext)**，以維持低耦合力及高可測試性。以下是整體架構關係圖：
+專案採用嚴謹的分層架構 (**Controller -> Business Logic & Service -> Repository -> DbContext**)，以維持低耦合力及高可測試性。以下是整體架構關係圖：
 
 ```mermaid
 graph TD
@@ -118,11 +118,9 @@ graph TD
         UC["UserController"]
     end
 
-    subgraph "邏輯層 (Logic Layer)"
-        LS["LogicService"]
-    end
-
-    subgraph "服務層 (Service Layer)"
+    subgraph "商業邏輯與服務層 (Business Logic & Service Layer)"
+        US["UserService"]
+        LS["LogicService (備用)"]
         AS["AuthService"]
         JS["JwtService"]
     end
@@ -135,26 +133,27 @@ graph TD
         TC["TemplateContext"]
     end
 
-    AC --> LS
+    AC --> US
     AC --> AS
     AC --> JS
     DC --> RS
-    UC --> LS
+    UC --> US
     UC --> RS
-    LS --> AS
-    LS --> RS
+    US --> AS
+    US --> RS
     AS --> TC
     RS --> TC
 
-    style LS fill:#4CAF50,color:#fff
+    style US fill:#4CAF50,color:#fff
 ```
 
 ### 1. Controllers (控制器層)
-* **設計理念**：僅負責端點接收、路由分派、DTO 驗證宣告，不應包含任何核心商業邏輯或直接的資料庫查詢。
+* **設計理念**：僅負責端點接收、路由分派、DTO 驗證宣告，不包含任何商業邏輯或直接的資料庫查詢。
+* **統一錯誤回應**：所有 API 在遇到業務邏輯錯誤或異常時，一律透過 `ErrorResponse` 以 `{ "Message": "錯誤訊息說明" }` 格式回傳，確保前端能有一致的攔截與處理邏輯，同時保障底層內部例外資訊不外洩。
 * **主要控制器**：
   * **[AuthController](Controllers/AuthController.cs)**：處理身分認證的入口。封裝了 AD 登入、一般登入與 JWT 權杖生命週期的邏輯。
     * `POST /api/Auth/Login`：使用資料庫的帳號密碼進行一般驗證（如內建的 `admin` 帳號），成功後簽發 Access Token 與 Refresh Token。
-    * `POST /api/Auth/AdLogin`：使用帳號密碼進行 AD 網域驗證，成功後透過 `LogicService` 於資料庫建立/同步使用者實體，並簽發 Access Token 與 Refresh Token。
+    * `POST /api/Auth/AdLogin`：使用帳號密碼進行 AD 網域驗證，成功後透過 `UserService` 於資料庫建立/同步使用者實體，並簽發 Access Token 與 Refresh Token。
     * `GET /api/Auth/UserProfile`：取得當前 Token 中使用者的基本資料與角色資訊。
     * `POST /api/Auth/RefreshToken`：使用有效 Refresh Token 續簽即將過期的 Access Token。
   * **[UserController](Controllers/UserController.cs)**：管理使用者帳號及角色權限。
@@ -165,28 +164,37 @@ graph TD
     * `GET /api/Data/GetTable1/{table1Id}`、`POST /api/Data/Table1SingleSave`、`DELETE /api/Data/DeleteTable1Data`。
     * `GET /api/Data/FindTable1/{currentPage}/{pageSize}`：具備分頁、關鍵字模糊搜尋及多欄位動態排序的進階分頁查詢。
 
-### 2. Logic (商業邏輯層)
-* **設計理念**：作為 Controller 與底層基礎 Service 間的緩衝。當一個業務行為涉及多個 Repository 協調或複雜程序時，應寫在 Logic 層，以避免 Controller 變得肥大。
+### 2. Business Logic & Services (商業邏輯與服務層)
+* **設計理念**：負責處理核心的業務流程與邏輯。我們將業務邏輯解耦，並區分為特定的業務服務（例如 `UserService`）與基礎底層服務（例如 `AuthService`、`JwtService`）。
 * **主要服務**：
+  * **[UserService](Services/UserService.cs)** (介面：[IUserService](Interfaces/IUserService.cs))：
+    * 專責處理與使用者相關的商業邏輯，例如 `CreateOrUpdateUserOnLoginAsync`（處理 AD 登入成功後的使用者同步與登入時間更新）、`UpdateUserAsync`、`UpdateUserRolesAsync` 等。
+    * 包含 `MapAdUserInfoToUser` 方法，將 AD 使用者資訊 DTO (`AdUserInfoDto`) 專責對應至系統的 `User` 實體，落實單一職責原則。
   * **[LogicService](Services/LogicService.cs)** (介面：[ILogicService](Interfaces/ILogicService.cs))：
-    * 範例一：`CreateOrUpdateUserOnLoginAsync(...)`。負責協調 `IAuthService` 進行使用者查詢，並用 `IRepositoryService` 儲存更新使用者狀態。
-    * 範例二：`UpdateUserRolesAsync(...)`。利用 Transaction 開啟與認可機制，安全地移除使用者舊有角色並寫入新角色，同時完整記錄 `UserRoleLog` 的異動日誌。
-
-### 3. Services (基礎服務層)
-* **設計理念**：提供基礎設施、安全性或與外部系統整合的單一職責功能。
-* **主要服務**：
+    * 備用之一般業務邏輯服務（目前為空介面與類別實作），供後續擴充其他非使用者相關之複雜業務場景使用。
   * **[AuthService](Services/AuthService.cs)** (介面：[IAuthService](Interfaces/IAuthService.cs))：
     * 跨平台 AD/LDAP 驗證：封裝與作業系統相關的 Active Directory (LDAP) 連線細節，並支援非 Windows 平台下的編譯降級，維護平台的移植性。
     * 資料庫密碼驗證：實作 `PasswordAuthenticateAsync`，透過內建的 `UserManager` 提供一般的帳號密碼登入驗證。
   * **[JwtService](Services/JwtService.cs)** (介面：[IJwtService](Interfaces/IJwtService.cs))：負責 JWT 權杖的簽發以及對傳入 Token 的安全解析與驗證，內含防範 Algorithm Confusion 的簽章校驗邏輯。
 
-### 4. Repository (資料存取與日誌層)
+### 3. Repository (資料存取與日誌層)
 * **設計理念**：資料庫存取層，封裝資料庫查詢細節與交易 (Transaction) 管理。
 * **主要服務**：
   * **[RepositoryService<T, TLog>](Services/RepositoryService.cs)** (介面：[IRepositoryService<T, TLog>](Interfaces/IRepositoryService.cs))：
     * **動態欄位搜尋**：在 `FindDataAsync` 中利用 Expression Tree 動態反射物件的所有 String 與 Numeric 屬性，在資料庫端直接生成包含 `Contains` 與 `ToString` 的 SQL 查詢，免除手寫多個 OR 條件的困擾。
     * **自動異動日誌 (Auto Audit Log)**：所有的寫入與刪除 (Save, Delete) 都會在同一個 Transaction 內同步透過 AutoMapper 映射生成對應的 Log 實體 (實作 [ILogInterface](Interfaces/ILogInterface.cs))，並自動填入操作者姓名、執行時間及操作方法 (Create/Update/Delete)，確保稽核紀錄不遺漏。
-    * **交易感知 (Transaction Awareness)**：自動偵測外部是否已開啟交易；若無，則自行建立並於成功後提交；若有，則直接使用外部交易，將 Commit 決定權交回給上層 Logic 服務。
+    * **交易感知 (Transaction Awareness)**：自動偵測外部是否已開啟交易；若無，則自行建立並於成功後提交；若有，則直接使用外部交易，將 Commit 決定權交回給上層 Logic/User 服務。
+
+### 4. 統一錯誤處理機制 (Unified Error Handling)
+* **全域異常捕獲**：註冊了 **[GlobalExceptionHandler](Middlewares/GlobalExceptionHandler.cs)** 中介軟體，用於捕獲所有未處理的例外狀況 (Exception)。
+* **API 錯誤格式一致化**：所有 API 內部發生的驗證失敗、權限不足或系統錯誤，皆回傳 **[ErrorResponse](DTOs/Responses/ErrorResponse.cs)** 格式的 JSON 物件：
+  ```json
+  {
+    "Message": "錯誤原因說明"
+  }
+  ```
+  這簡化了前端 `onResponseError` 攔截器 (Interceptor) 的設計，使其僅需統一讀取回應中的 `Message` 屬性即可直接呈現給使用者，而不必針對各種 HTTP Status Code 編寫重複且冗長的剖析程式碼。
+* **敏感資訊防護**：全域異常捕獲時，系統會將詳細的 Exception Stack Trace 寫入後端 Log，但對前端僅回傳安全的通用說明文字（如「伺服器發生內部錯誤，請聯繫系統管理員。」），避免洩漏底層實體或資料庫結構等安全性風險。
 
 ---
 
@@ -226,7 +234,7 @@ graph TD
 若您想為系統新增一個資料表，並讓其自動具備「異動日誌紀錄（Audit Log）」功能，請遵循以下步驟（以新增資料表 `Table2` 為例）：
 
 1. **定義共用基底欄位**
-   在 `Models/Entities` 目錄下定義 `Table2Base`，放置商業屬性：
+   In `Models/Entities` 目錄下定義 `Table2Base`，放置商業屬性：
    ```csharp
    public class Table2Base
    {
@@ -278,7 +286,7 @@ graph TD
    ```
 
 6. **在服務中直接使用 Repository**
-   現在，您只需在控制器或 Logic 層直接注入 `IRepositoryService<Table2, Table2Log>`：
+   現在，您只需在控制器或 Logic/User 層直接注入 `IRepositoryService<Table2, Table2Log>`：
    ```csharp
    public class Table2Controller(IRepositoryService<Table2, Table2Log> table2Repository) : ControllerBase
    {

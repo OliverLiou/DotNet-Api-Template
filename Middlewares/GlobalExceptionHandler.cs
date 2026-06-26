@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Diagnostics;
+using DotNetApiTemplate.DTOs.Responses;
 
 namespace DotNetApiTemplate.Middlewares
 {
     public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
     {
-        private static readonly object ErrorResponse = new { Message = "伺服器發生內部錯誤，請聯繫系統管理員。" };
+        private static readonly ErrorResponse DefaultErrorResponse = new() { Message = "伺服器發生內部錯誤，請聯繫系統管理員。" };
         private readonly ILogger<GlobalExceptionHandler> _logger = logger;
 
         public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
@@ -20,7 +21,7 @@ namespace DotNetApiTemplate.Middlewares
 
             httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-            await httpContext.Response.WriteAsJsonAsync(ErrorResponse, cancellationToken);
+            await httpContext.Response.WriteAsJsonAsync(DefaultErrorResponse, cancellationToken);
             return true;
         }
     }
