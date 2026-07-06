@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.DTOs.Responses.User;
-using DotNetApiTemplate.DTOs.Requests.User;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.DTOs.Responses.User;
+using DotNetWebApiMssql.DTOs.Requests.User;
 
-namespace DotNetApiTemplate.Interfaces
+namespace DotNetWebApiMssql.Interfaces
 {
     /// <summary>
     /// 使用者業務邏輯服務介面

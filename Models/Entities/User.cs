@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace DotNetApiTemplate.Models.Entities
+namespace DotNetWebApiMssql.Models.Entities
 {
     /// <summary>
     /// 使用者的基底類別，繼承自 IdentityUser

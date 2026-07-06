@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using DotNetApiTemplate.Models.Context;
-using DotNetApiTemplate.Interfaces;
-using DotNetApiTemplate.Models.EntityLogs;
+using DotNetWebApiMssql.Models.Context;
+using DotNetWebApiMssql.Interfaces;
+using DotNetWebApiMssql.Models.EntityLogs;
 
-namespace DotNetApiTemplate.Services
+namespace DotNetWebApiMssql.Services
 {
     /// <summary>
     /// 泛型 Repository 實作

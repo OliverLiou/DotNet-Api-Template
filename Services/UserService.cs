@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
-using DotNetApiTemplate.Interfaces;
-using DotNetApiTemplate.Models.Context;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Models.EntityLogs;
-using DotNetApiTemplate.DTOs.Responses.User;
-using DotNetApiTemplate.DTOs.Requests.User;
+using DotNetWebApiMssql.Interfaces;
+using DotNetWebApiMssql.Models.Context;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Models.EntityLogs;
+using DotNetWebApiMssql.DTOs.Responses.User;
+using DotNetWebApiMssql.DTOs.Requests.User;
 
-namespace DotNetApiTemplate.Services
+namespace DotNetWebApiMssql.Services
 {
     /// <summary>
     /// 使用者業務邏輯服務實作

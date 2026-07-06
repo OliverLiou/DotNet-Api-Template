@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
-using DotNetApiTemplate.DTOs.Responses;
+using DotNetWebApiMssql.DTOs.Responses;
 
-namespace DotNetApiTemplate.Middlewares
+namespace DotNetWebApiMssql.Middlewares
 {
     public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
     {

@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Requests.Data
+namespace DotNetWebApiMssql.DTOs.Requests.Data
 {
     /// <summary>
     /// Table1 資料的請求物件

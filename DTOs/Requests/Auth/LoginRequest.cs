@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Requests.Auth
+namespace DotNetWebApiMssql.DTOs.Requests.Auth
 {
     /// <summary>
     /// 一般登入請求 DTO

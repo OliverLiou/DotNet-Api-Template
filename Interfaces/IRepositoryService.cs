@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace DotNetApiTemplate.Interfaces
+namespace DotNetWebApiMssql.Interfaces
 {
     /// <summary>
     /// 泛型 Repository 介面，約束提升到介面級別

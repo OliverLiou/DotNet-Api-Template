@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace DotNetApiTemplate.Models.Entities
+namespace DotNetWebApiMssql.Models.Entities
 {
     /// <summary>
     /// Table1 的基底類別

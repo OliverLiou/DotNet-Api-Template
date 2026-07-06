@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Responses.User
+namespace DotNetWebApiMssql.DTOs.Responses.User
 {
     /// <summary>
     /// 從 AD (UserPrincipal) 擷取出的使用者資料 DTO，

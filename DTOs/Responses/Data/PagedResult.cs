@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Responses.Data
+namespace DotNetWebApiMssql.DTOs.Responses.Data
 {
     /// <summary>
     /// 分頁結果的 ViewModel，包含資料列表和符合查詢條件的資料總筆數

@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Interfaces;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Interfaces;
 
-namespace DotNetApiTemplate.Models.EntityLogs
+namespace DotNetWebApiMssql.Models.EntityLogs
 {
     /// <summary>
     /// Table1Log 的實體類別

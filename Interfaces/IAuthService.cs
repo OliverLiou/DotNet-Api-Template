@@ -1,7 +1,7 @@
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.DTOs.Responses.User;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.DTOs.Responses.User;
 
-namespace DotNetApiTemplate.Interfaces
+namespace DotNetWebApiMssql.Interfaces
 {
     public interface IAuthService
     {

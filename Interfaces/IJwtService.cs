@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using DotNetApiTemplate.Models.Entities;
+using DotNetWebApiMssql.Models.Entities;
 
-namespace DotNetApiTemplate.Interfaces
+namespace DotNetWebApiMssql.Interfaces
 {
     public interface IJwtService
     {

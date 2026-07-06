@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.Interfaces
+namespace DotNetWebApiMssql.Interfaces
 {
     public interface ILogInterface
     {

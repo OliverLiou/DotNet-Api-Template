@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace DotNetApiTemplate.DTOs.Requests.Auth
+namespace DotNetWebApiMssql.DTOs.Requests.Auth
 {
     public class AdLoginRequest
     {

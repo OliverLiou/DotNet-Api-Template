@@ -1,4 +1,4 @@
-# DotNetApiTemplate - 後端 API 開發樣板
+# DotNetWebApiMssql - 後端 API 開發樣板
 
 此專案為基於 ASP.NET Core 的後端 API 開發樣板，採用 .NET 10.0 框架，專注於高效能、安全性、高可擴展性及清晰的分層架構。本專案整合了 JWT 驗證、Active Directory (AD) 網域登入、自動化操作日誌 (Generic Repository + Audit Log), AutoMapper 映射以及 Swagger 開發文件。
 
@@ -22,8 +22,8 @@
 ### 1. 克隆專案 (Clone)
 使用 Git 將專案複製至您的開發主機：
 ```bash
-git clone https://github.com/OliverLiou/DotNet-Api-Template.git
-cd DotNet-Api-Template
+git clone https://github.com/OliverLiou/dotnet-webapi-mssql.git
+cd dotnet-webapi-mssql
 ```
 
 ### 2. 設定設定檔 `appsettings.json`
@@ -86,7 +86,7 @@ dotnet run
 本專案結構劃分清晰，依功能將代碼分類存放：
 
 ```text
-DotNet-Api-Template/
+dotnet-webapi-mssql/
 ├── Controllers/         # API 控制器層，負責接收 HTTP 請求 (如 AuthController.cs, UserController.cs, DataController.cs)
 ├── DTOs/                # 資料傳輸物件層，細分為 Requests (請求) 與 Responses (回應，含統一錯誤回應格式 ErrorResponse.cs)
 ├── Interfaces/          # 系統核心服務與邏輯層的介面定義 (如 IRepositoryService.cs, IUserService.cs, ILogicService.cs)
@@ -101,7 +101,7 @@ DotNet-Api-Template/
 ├── Settings/            # 強型別組態定義 (如 JwtSettings.cs, LdapSettings.cs)
 ├── AutoMapping.cs       # AutoMapper 映射設定檔 (AutoMapping.cs)
 ├── Program.cs           # 應用程式進入點與 DI 容器註冊中心 (Program.cs)
-└── DotNetApiTemplate.csproj
+└── DotNetWebApiMssql.csproj
 ```
 
 ---
@@ -260,7 +260,7 @@ graph TD
    ```csharp
    using System;
    using System.ComponentModel.DataAnnotations;
-   using DotNetApiTemplate.Interfaces;
+   using DotNetWebApiMssql.Interfaces;
 
    public class Table2Log : Table2Base, ILogInterface
    {
