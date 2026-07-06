@@ -12,7 +12,11 @@
   "Cors": {
     "AllowedOrigins": ["http://localhost:3000"]
   },
-  "DomainAD": "please provide your domain AD here, in the format of ip:port",
+  "LdapSettings": {
+    "Server": "please provide your LDAP server FQDN here",
+    "ServiceUsername": "please provide service username here",
+    "ServicePassword": "please provide service password here"
+  },
   "MethodName": {
     "Create": "Create",
     "Update": "Update",

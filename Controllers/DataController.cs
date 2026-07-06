@@ -10,17 +10,21 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
+using System.Linq.Expressions;
 
 namespace DotNetApiTemplate.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class DataController(IRepositoryService<Table1, Table1Log> table1RepositoryService, IMapper mapper) : ControllerBase
+    public class DataController(
+        IMapper mapper,
+        IRepositoryService<Table1, Table1Log> table1RepositoryService) : ControllerBase
     {
         private readonly IRepositoryService<Table1, Table1Log> _table1RepositoryService = table1RepositoryService;
         private readonly IMapper _mapper = mapper;
 
+        #region Table1 APIs
         [HttpGet("GetTable1/{table1Id}")]
         [SwaggerOperation(Description = "取得指定的 Table1 資料")]
         public async Task<IActionResult> GetTable1(int table1Id)
@@ -83,6 +87,7 @@ namespace DotNetApiTemplate.Controllers
             var pagedResult = new PagedResult<Table1Response>(table1List, totalCount);
             return Ok(pagedResult);
         }
+        #endregion
 
         /// <summary>
         /// 取得當前JWT Token的使用者名稱，供 RepositoryService 的 Log 紀錄使用

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DotNetApiTemplate.DTOs.Requests.Auth;
+using DotNetApiTemplate.DTOs.Responses;
 using DotNetApiTemplate.DTOs.Responses.Auth;
 using DotNetApiTemplate.DTOs.Responses.User;
 using DotNetApiTemplate.Models.Entities;
@@ -18,11 +19,17 @@ namespace DotNetApiTemplate.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IJwtService jwtService, IAuthService authService, ILogicService logicService, IConfiguration configuration, ILogger<AuthController> logger, IOptions<JwtSettings> jwtOptions) : ControllerBase
+    public class AuthController(
+        IJwtService jwtService,
+        IAuthService authService,
+        IUserService userService,
+        IConfiguration configuration,
+        ILogger<AuthController> logger,
+        IOptions<JwtSettings> jwtOptions) : ControllerBase
     {
         private readonly IJwtService _jwtService = jwtService;
         private readonly IAuthService _authService = authService;
-        private readonly ILogicService _logicService = logicService;
+        private readonly IUserService _userService = userService;
         private readonly string _systemUserName = configuration["SystemName"] ?? "System";
         private readonly ILogger<AuthController> _logger = logger;
         private readonly JwtSettings _jwtSettings = jwtOptions.Value;
@@ -36,25 +43,53 @@ namespace DotNetApiTemplate.Controllers
             var userName = request.UserName;
             var password = request.Password;
 
-            // 透過 AD 驗證帳號密碼
-            var (isValid, errorMessage) = await _authService.AdAuthenticateAsync(userName, password);
+            // 透過 AD 驗證帳號密碼，並同時取得使用者資料
+            var (isValid, adUserInfo, errorMessage) = await _authService.AuthenticateAndFetchAdUserAsync(userName, password);
 
-            if (!isValid)
+            if (!isValid || adUserInfo == null)
             {
                 _logger.LogWarning("AD 登入驗證失敗: {UserName}, 原因: {Error}", userName, errorMessage);
-                return BadRequest(errorMessage ?? "驗證失敗" );
+                return BadRequest(new ErrorResponse { Message = errorMessage ?? "驗證失敗" });
             }
 
-            var (adUserInfo, fetchErrorMessage) = await _authService.FetchAdUserPrincipal(userName);
+            // 透過 UserService 建立或更新使用者資料，並更新最後登入時間
+            var user = await _userService.CreateOrUpdateUserOnLoginAsync(userName, adUserInfo, _systemUserName);
+            
 
-            if (adUserInfo == null)
+            // 生成 JWT token
+            var expiryInHours = _jwtSettings.ExpiryInHours;
+            var refreshTokenExpiryInHours = _jwtSettings.RefreshTokenExpiryInHours;
+            var accessToken = _jwtService.GenerateToken(user, expiryInHours, JwtTokenTypes.Access);
+            var refreshToken = _jwtService.GenerateToken(user, refreshTokenExpiryInHours, JwtTokenTypes.Refresh);
+
+            return Ok(new AuthResponse { AccessToken = accessToken, RefreshToken = refreshToken });
+        }
+
+        /// <summary>
+        /// 一般登入，驗證成功後會回傳 JWT access token 和 refresh token
+        /// </summary>
+        [HttpPost("Login")]
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+        {
+            var userName = request.UserName;
+            var password = request.Password;
+
+            var (isValid, user) = await _authService.PasswordAuthenticateAsync(userName, password);
+
+            if (!isValid || user == null)
             {
-                _logger.LogWarning("AD 使用者資料查詢失敗: {UserName}, 原因: {Error}", userName, fetchErrorMessage);
-                return BadRequest(fetchErrorMessage ?? "驗證失敗" );
+                _logger.LogWarning("一般登入驗證失敗: {UserName}", userName);
+                return BadRequest(new ErrorResponse { Message = "帳號或密碼錯誤" });
             }
 
-            // 透過 LogicService 建立或更新使用者資料，並更新最後登入時間
-            var user = await _logicService.CreateOrUpdateUserOnLoginAsync(userName, adUserInfo, _systemUserName);
+            if (!user.IsActive)
+            {
+                _logger.LogWarning("一般登入失敗：帳號已停用: {UserName}", userName);
+                return BadRequest(new ErrorResponse { Message = "帳號已停用" });
+            }
+
+            // 更新最後登入時間
+            await _userService.UpdateLastLoginTimeAsync(user, _systemUserName);
 
             // 生成 JWT token
             var accessToken = _jwtService.GenerateToken(user, _jwtSettings.ExpiryInHours, JwtTokenTypes.Access);
@@ -62,7 +97,6 @@ namespace DotNetApiTemplate.Controllers
 
             return Ok(new AuthResponse { AccessToken = accessToken, RefreshToken = refreshToken });
         }
-
 
         /// <summary>
         /// 取得使用者個人資料，包含姓名、Email、角色等資訊
@@ -76,7 +110,7 @@ namespace DotNetApiTemplate.Controllers
             if (string.IsNullOrWhiteSpace(userId))
             {
                 _logger.LogWarning("UserProfile 無法從 token 取得使用者識別");
-                return Unauthorized();
+                return Unauthorized(new ErrorResponse { Message = "認證失敗" });
             }
 
             var user = await _authService.GetUserByIdAsync(userId);
@@ -84,7 +118,7 @@ namespace DotNetApiTemplate.Controllers
             if (user == null)
             {
                 _logger.LogWarning("UserProfile 查無使用者: {UserId}", userId);
-                return NotFound();
+                return NotFound(new ErrorResponse { Message = "查無使用者" });
             }
 
             var roleNames = await _authService.GetUserRoleNamesAsync(user);
@@ -119,12 +153,12 @@ namespace DotNetApiTemplate.Controllers
             catch (SecurityTokenException ex)
             {
                 _logger.LogWarning(ex, "RefreshToken 驗證失敗");
-                return Unauthorized("Token 驗證失敗");
+                return Unauthorized(new ErrorResponse { Message = "Token 驗證失敗" });
             }
             catch (ArgumentException ex)
             {
                 _logger.LogWarning(ex, "RefreshToken 缺少必要 token");
-                return BadRequest("AccessToken 與 RefreshToken 為必填欄位");
+                return BadRequest(new ErrorResponse { Message = "AccessToken 與 RefreshToken 為必填欄位" });
             }
 
             var refreshUserId = refreshPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -133,25 +167,25 @@ namespace DotNetApiTemplate.Controllers
             if (string.IsNullOrWhiteSpace(refreshUserId) || string.IsNullOrWhiteSpace(accessUserId))
             {
                 _logger.LogWarning("RefreshToken 無法解析使用者識別");
-                return Unauthorized("Token 內容無效");
+                return Unauthorized(new ErrorResponse { Message = "Token 內容無效" });
             }
 
             if (!string.Equals(refreshUserId, accessUserId, StringComparison.Ordinal))
             {
                 _logger.LogWarning("RefreshToken 與 AccessToken 使用者不一致");
-                return Unauthorized("AccessToken 與 RefreshToken 不一致");
+                return Unauthorized(new ErrorResponse { Message = "AccessToken 與 RefreshToken 不一致" });
             }
 
             var tokenType = refreshPrincipal.FindFirst("token_type")?.Value;
             if (tokenType != JwtTokenTypes.Refresh)
-                return Unauthorized("提供的 RefreshToken 型別不是 refresh");
+                return Unauthorized(new ErrorResponse { Message = "提供的 RefreshToken 型別不是 refresh" });
 
             var user = await _authService.GetUserByIdAsync(refreshUserId);
 
             if (user == null)
             {
                 _logger.LogWarning("RefreshToken 查無使用者: {UserId}", refreshUserId);
-                return NotFound("查無使用者");
+                return NotFound(new ErrorResponse { Message = "查無使用者" });
             }
 
             var newAccessToken = _jwtService.GenerateToken(user, _jwtSettings.ExpiryInHours, JwtTokenTypes.Access);
