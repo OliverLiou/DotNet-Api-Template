@@ -294,3 +294,51 @@ graph TD
    }
    ```
    如此便完成了功能擴充，無需手寫任何記錄 Log 的重複性程式碼。
+
+---
+
+## 📦 專案範本安裝與使用指南 (Project Template Guide)
+
+本專案支援作為 `dotnet new` 專案範本。您可以將此專案安裝至您的本地 .NET SDK 中，以便未來快速建立相同架構的新專案。
+
+### 1. 範本設定檔說明 (`.template.config/template.json`)
+專案中包含 `.template.config/template.json` 設定檔，其欄位意義如下：
+
+| 欄位名稱 | 說明 | 設定值 |
+| :--- | :--- | :--- |
+| `$schema` | 指定 JSON Schema 驗證網址 | `https://json.schemastore.org/template` |
+| `author` | 範本作者 | `OliverLiou` |
+| `classifications` | 範本搜尋標籤與分類 | `[ "Web", "WebAPI", "MSSQL" ]` |
+| `name` | 範本在清單中顯示的完整名稱 | `Oliver DotNet Web API MSSQL Template` |
+| `identity` | 範本的唯一識別碼 | `Oliver.WebApi.Mssql` |
+| `shortName` | 建立專案時所使用的簡短代碼 | `oliver-webapi-mssql` |
+| `tags` | 描述範本語言與類型 | `language: C#`, `type: project` |
+| `sourceName` | 代換關鍵字（建立新專案時，此關鍵字將被取代為新專案名稱） | `DotNetWebApiMssql` |
+| `preferNameDirectory` | 是否預設建立以專案名稱為名的子目錄 | `true` |
+| `sources` | 排除不應進入範本產物的檔案與目錄過濾設定 | 排除 `bin/`、`obj/`、`.git/`、`README.md`、`LICENSE`、`appsettings.json` 等檔案與目錄 |
+
+### 2. 如何安裝與使用範本
+
+- **安裝範本 (Install)**：
+  在專案根目錄下，執行以下指令將目前的專案架構註冊為範本：
+  ```bash
+  dotnet new install .
+  ```
+
+- **建立新專案 (Create)**：
+  安裝成功後，您可以在任何地方執行以下指令建立新專案：
+  ```bash
+  dotnet new oliver-webapi-mssql -n MyAwesomeNewProject
+  ```
+  這會自動將程式碼中所有的 `DotNetWebApiMssql` 關鍵字（包括 Namespace 和檔案路徑）替換為 `MyAwesomeNewProject`。
+
+- **列出已安裝範本 (List)**：
+  ```bash
+  dotnet new list
+  ```
+
+- **解除安裝範本 (Uninstall)**：
+  若要更新或移除範本，請執行：
+  ```bash
+  dotnet new uninstall .
+  ```
