@@ -1,13 +1,13 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using DotNetApiTemplate.Models.Context;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Models.EntityLogs;
-using DotNetApiTemplate.Interfaces;
-using DotNetApiTemplate.Settings;
-using DotNetApiTemplate.Services;
-using DotNetApiTemplate.Middlewares;
+using DotNetWebApiMssql.Models.Context;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Models.EntityLogs;
+using DotNetWebApiMssql.Interfaces;
+using DotNetWebApiMssql.Settings;
+using DotNetWebApiMssql.Services;
+using DotNetWebApiMssql.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -47,7 +47,7 @@ builder.Services.AddSwaggerGen(options =>
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
         options.IncludeXmlComments(xmlPath);
         options.EnableAnnotations();
-        options.SwaggerDoc("v1", new OpenApiInfo { Title = "DotNetApiTemplate", Version = "v1" });
+        options.SwaggerDoc("v1", new OpenApiInfo { Title = "DotNetWebApiMssql", Version = "v1" });
         options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
         {
             Type = SecuritySchemeType.Http,

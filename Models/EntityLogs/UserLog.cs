@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Interfaces;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Interfaces;
 
-namespace DotNetApiTemplate.Models.EntityLogs
+namespace DotNetWebApiMssql.Models.EntityLogs
 {
     /// <summary>
     /// UserLog 的實體類別

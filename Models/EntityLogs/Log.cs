@@ -1,6 +1,6 @@
-using DotNetApiTemplate.Interfaces;
+using DotNetWebApiMssql.Interfaces;
 
-namespace DotNetApiTemplate.Models.EntityLogs
+namespace DotNetWebApiMssql.Models.EntityLogs
 {
     /// <summary>
     /// Log 的實體類別，實作自 ILogInterface

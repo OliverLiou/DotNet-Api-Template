@@ -1,6 +1,6 @@
-using DotNetApiTemplate.Interfaces;
+using DotNetWebApiMssql.Interfaces;
 
-namespace DotNetApiTemplate.Services
+namespace DotNetWebApiMssql.Services
 {
     /// <summary>
     /// 統一商業邏輯層服務實作

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace DotNetApiTemplate.DTOs.Requests.Auth
+namespace DotNetWebApiMssql.DTOs.Requests.Auth
 {
     /// <summary>
     /// RefreshTokenRequest 用於 RefreshToken 流程。

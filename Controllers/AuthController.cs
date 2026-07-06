@@ -4,18 +4,18 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using DotNetApiTemplate.DTOs.Requests.Auth;
-using DotNetApiTemplate.DTOs.Responses;
-using DotNetApiTemplate.DTOs.Responses.Auth;
-using DotNetApiTemplate.DTOs.Responses.User;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Models.EntityLogs;
-using DotNetApiTemplate.Interfaces;
-using DotNetApiTemplate.Settings;
+using DotNetWebApiMssql.DTOs.Requests.Auth;
+using DotNetWebApiMssql.DTOs.Responses;
+using DotNetWebApiMssql.DTOs.Responses.Auth;
+using DotNetWebApiMssql.DTOs.Responses.User;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Models.EntityLogs;
+using DotNetWebApiMssql.Interfaces;
+using DotNetWebApiMssql.Settings;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace DotNetApiTemplate.Controllers
+namespace DotNetWebApiMssql.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

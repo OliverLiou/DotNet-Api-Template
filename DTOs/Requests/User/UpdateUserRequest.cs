@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Requests.User
+namespace DotNetWebApiMssql.DTOs.Requests.User
 {
     /// <summary>
     /// 更新使用者基本資料的請求 DTO

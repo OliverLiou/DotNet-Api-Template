@@ -1,9 +1,9 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using DotNetApiTemplate.Interfaces;
+using DotNetWebApiMssql.Interfaces;
 
-namespace DotNetApiTemplate.Models.EntityLogs
+namespace DotNetWebApiMssql.Models.EntityLogs
 {
     /// <summary>
     /// UserRole 變更日誌實體

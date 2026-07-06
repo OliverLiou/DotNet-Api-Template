@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace DotNetApiTemplate.DTOs.Responses.User
+namespace DotNetWebApiMssql.DTOs.Responses.User
 {
     public class UserInfoDto
     {

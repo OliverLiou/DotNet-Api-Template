@@ -1,10 +1,10 @@
 using AutoMapper;
-using DotNetApiTemplate.DTOs.Requests.Data;
-using DotNetApiTemplate.DTOs.Responses.Data;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Models.EntityLogs;
+using DotNetWebApiMssql.DTOs.Requests.Data;
+using DotNetWebApiMssql.DTOs.Responses.Data;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Models.EntityLogs;
 
-namespace DotNetApiTemplate
+namespace DotNetWebApiMssql
 {
     public class AutoMapping : Profile
     {

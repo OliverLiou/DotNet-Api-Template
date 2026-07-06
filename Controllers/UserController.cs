@@ -5,18 +5,18 @@ using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
-using DotNetApiTemplate.DTOs.Requests.User;
-using DotNetApiTemplate.DTOs.Responses;
-using DotNetApiTemplate.DTOs.Responses.Data;
-using DotNetApiTemplate.Interfaces;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Models.EntityLogs;
+using DotNetWebApiMssql.DTOs.Requests.User;
+using DotNetWebApiMssql.DTOs.Responses;
+using DotNetWebApiMssql.DTOs.Responses.Data;
+using DotNetWebApiMssql.Interfaces;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Models.EntityLogs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace DotNetApiTemplate.Controllers
+namespace DotNetWebApiMssql.Controllers
 {
     [Authorize]
     [ApiController]

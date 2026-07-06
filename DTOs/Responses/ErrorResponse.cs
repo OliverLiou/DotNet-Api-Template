@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Responses
+namespace DotNetWebApiMssql.DTOs.Responses
 {
     /// <summary>
     /// 統一錯誤回應格式

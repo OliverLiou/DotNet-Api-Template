@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Responses.Auth
+namespace DotNetWebApiMssql.DTOs.Responses.Auth
 {
     public class AuthResponse
     {

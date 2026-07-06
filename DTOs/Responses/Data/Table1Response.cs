@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.DTOs.Responses.Data
+namespace DotNetWebApiMssql.DTOs.Responses.Data
 {
     /// <summary>
     /// Table1 資料的回應 DTO

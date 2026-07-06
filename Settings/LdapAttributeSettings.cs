@@ -1,4 +1,4 @@
-namespace DotNetApiTemplate.Settings;
+namespace DotNetWebApiMssql.Settings;
 
 public static class LdapAttributeSettings
 {

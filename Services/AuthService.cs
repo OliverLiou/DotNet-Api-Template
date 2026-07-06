@@ -1,16 +1,16 @@
 using System.DirectoryServices.Protocols;
 using System.Net;
-using DotNetApiTemplate.DTOs.Responses.User;
-using DotNetApiTemplate.Interfaces;
-using DotNetApiTemplate.Models.Context;
-using DotNetApiTemplate.Models.Entities;
-using DotNetApiTemplate.Settings;
+using DotNetWebApiMssql.DTOs.Responses.User;
+using DotNetWebApiMssql.Interfaces;
+using DotNetWebApiMssql.Models.Context;
+using DotNetWebApiMssql.Models.Entities;
+using DotNetWebApiMssql.Settings;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 
-namespace DotNetApiTemplate.Services
+namespace DotNetWebApiMssql.Services
 {
     public class AuthService(
         TemplateContext context,
