@@ -1,0 +1,31 @@
+name: PR Source Branch Validator
+
+on:
+  pull_request:
+    branches:
+      - mssql/main
+
+jobs:
+  validate-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Branch Rules
+        run: |
+          HEAD_REF="${{ github.head_ref }}"
+          IS_FORK="${{ github.event.pull_request.head.repo.full_name != github.repository }}"
+          
+          echo "當前 PR 來源分支為: $HEAD_REF"
+          
+          # 1. 嚴格拒絕來自 postgres/* 的任何 PR
+          if [[ "$HEAD_REF" == postgres/* ]]; then
+            echo "錯誤：不接受來自 postgres/* 的 Pull Request！"
+            exit 1
+          fi
+          
+          # 2. 如果不是來自他人的 fork 請求，則內部 PR 必須來自 mssql/dev
+          if [ "$IS_FORK" = "false" ] && [ "$HEAD_REF" != "mssql/dev" ]; then
+            echo "錯誤：內部 Pull Request 僅接受來自 mssql/dev 分支！"
+            exit 1
+          fi
+          
+          echo "驗證通過！"
